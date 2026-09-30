@@ -136,6 +136,14 @@ void ContiParameters::read_data_from_hdf5_file(const maxent::params& p) {
       for (int j = 0; j < ndat(); j++)
         cov_(i, j) = tmp[i * ndat() + j];
   }
+  //The HDF5 layout has no tau column. Without TAU_i, time data would use an
+  //unset grid; assume a uniform one from 0 to beta, as the ALPS 2 maxent did.
+  for (int i = 0; i < ndat(); i++)
+    inputGrid_(i) = i / (T_ * (ndat() - 1));
+  std::string dataspace = p["DATASPACE"].as<std::string>();
+  to_lower(dataspace);
+  if (dataspace == "time" && !p.exists("TAU_0") && !p.defined("TAU_1"))
+    std::cerr << "WARNING: no TAU_i given for HDF5 data; assuming a uniform tau grid from 0 to beta" << std::endl;
 }
 
 void ContiParameters::read_data_from_param_file(const maxent::params& p) {
