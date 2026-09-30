@@ -26,7 +26,7 @@ class MaxEntHelper : private MaxEntParameters
 {
 public : 
 
-  MaxEntHelper(alps::params& p);
+  MaxEntHelper(maxent::params& p);
 
   double omega_coord(const int i) const { return MaxEntParameters::omega_coord(i); }
 
@@ -89,7 +89,7 @@ class MaxEntSimulation : private MaxEntHelper
 public:
 
   ///setup of parameters
-  MaxEntSimulation(alps::params& parms);
+  MaxEntSimulation(maxent::params& parms);
   ///the maxent calculation
   void run();
   ///the evaluation and writing of files
@@ -97,7 +97,7 @@ public:
   vector_type levenberg_marquardt(vector_type u, const double alpha) const;
   vector_type iteration(vector_type u, const double alpha, const double mu) const;
   ///define parameter defaults
-  static void define_parameters(alps::params &p);
+  static void define_parameters(maxent::params &p);
 
 private:
 

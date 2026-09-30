@@ -11,7 +11,7 @@
 
 #pragma once
 #include<vector>
-#include<alps/params.hpp>
+#include "maxent_parameters.hpp"
 #include<iostream>
 #include"maxent_matrix_def.hpp"
 ///enum that enumerates if we're in time or in frequency
@@ -38,7 +38,7 @@ enum kernel_type{
 };
 class kernel{
 public:
-  kernel(alps::params &p, const vector_type& freq, vector_type &inputGrid);
+  kernel(maxent::params &p, const vector_type& freq, vector_type &inputGrid);
 
   ///getter function for the kernel matrix
   const matrix_type &operator()()const{return K_;}
@@ -54,7 +54,7 @@ private:
   void set_kernel_type(const std::string &dataspace_name, const std::string &kernel_name,
                        bool ph_symmetry);
   ///set up kernel with the legendre transform
-  void setup_legendre_kernel(const alps::params &p, const vector_type& freq, const int lmax);
+  void setup_legendre_kernel(const maxent::params &p, const vector_type& freq, const int lmax);
   ///number; of Matsubara points
   int ndat_;
   ///number of real frequency points

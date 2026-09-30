@@ -328,6 +328,8 @@ def test_maxent_restores_python_signal_handlers(tmp_path, monkeypatch):
     for index in range(ndat):
         parms["X_%d" % index] = -0.5
         parms["SIGMA_%d" % index] = 0.01
+        # Maxent takes the tau grid of X_i data from TAU_i
+        parms["TAU_%d" % index] = index * parms["BETA"] / (ndat - 1)
 
     calls = []
 

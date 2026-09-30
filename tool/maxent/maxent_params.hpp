@@ -22,7 +22,7 @@ class ContiParameters {
 public:
   
   ///constructs the kernel and grid from the parameters p. Also reads in the data.
-  ContiParameters(alps::params& p);
+  ContiParameters(maxent::params& p);
   
   ///value of the Matsubara data at index i
   double y(const int i) const { return y_[i]; }
@@ -49,14 +49,14 @@ private:
   ///temperature
   const double T_;
 
-  void read_data_from_text_file(const alps::params& p);
-  void read_data_from_hdf5_file(const alps::params& p);
-  void read_data_from_param_file(const alps::params& p);
+  void read_data_from_text_file(const maxent::params& p);
+  void read_data_from_hdf5_file(const maxent::params& p);
+  void read_data_from_param_file(const maxent::params& p);
   void read_covariance_matrix_from_text_file(const std::string& fname);
 
 protected:
 
-  void decompose_covariance_matrix(const alps::params& p);
+  void decompose_covariance_matrix(const maxent::params& p);
   ///This function scales both the y (data) and the kernel with the errors
   void scale_data_with_error(const int ntab);
 
@@ -87,7 +87,7 @@ class MaxEntParameters : public ContiParameters
 {
 public:
   ///constructs the maxent specific parameters out of parameters p
-  MaxEntParameters(alps::params& p);
+  MaxEntParameters(maxent::params& p);
   
   const matrix_type& U() const { return U_; }
   const matrix_type& Vt() const { return Vt_; }

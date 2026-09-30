@@ -39,7 +39,7 @@
 
 ///Read data from a text file, with filename given by p["DATA"] in the parameters.
 ///The format should be index data error
-void ContiParameters::read_data_from_text_file(const alps::params& p) {
+void ContiParameters::read_data_from_text_file(const maxent::params& p) {
   std::string fname = p["DATA"];
   std::ifstream datstream(fname.c_str());
   if (!datstream){
@@ -110,7 +110,7 @@ void ContiParameters::read_data_from_text_file(const alps::params& p) {
 ///if the parameter COVARIANCE_MATRIX is specified, then the covariance matrix is read in instead of the error.
 ///The covariance matrix is expected to be stored at /Covariance
 
-void ContiParameters::read_data_from_hdf5_file(const alps::params& p) {
+void ContiParameters::read_data_from_hdf5_file(const maxent::params& p) {
   std::string fname = p["DATA"];
   //attempt to read from h5 archive
   alps::hdf5::archive ar(fname, "r");
@@ -138,7 +138,7 @@ void ContiParameters::read_data_from_hdf5_file(const alps::params& p) {
   }
 }
 
-void ContiParameters::read_data_from_param_file(const alps::params& p) {
+void ContiParameters::read_data_from_param_file(const maxent::params& p) {
   if (!p.defined("NORM")) {
     throw std::runtime_error("parameter NORM missing!");
   } else
@@ -163,7 +163,7 @@ void ContiParameters::read_data_from_param_file(const alps::params& p) {
   }
 }
 
-ContiParameters::ContiParameters(alps::params& p) :
+ContiParameters::ContiParameters(maxent::params& p) :
 T_(1/p["BETA"].as<double>()),ndat_(p["NDAT"]), nfreq_(p["NFREQ"]),
 y_(ndat_),sigma_(ndat_),K_(),grid_(p),inputGrid_(ndat_)
 {
@@ -223,7 +223,7 @@ void ContiParameters::read_covariance_matrix_from_text_file(
   }
 }
 
-void ContiParameters::decompose_covariance_matrix(const alps::params& p){
+void ContiParameters::decompose_covariance_matrix(const maxent::params& p){
 
     vector_type var(ndat());
     //TODO: check if this truly implements lapack's expected overwrite of cov_
@@ -366,7 +366,7 @@ void MaxEntParameters::check_high_frequency_limit(const vector_type& y,const ker
     }
 }
 
-MaxEntParameters::MaxEntParameters(alps::params& p) :
+MaxEntParameters::MaxEntParameters(maxent::params& p) :
     ContiParameters(p),
     Default_(make_default_model(p, "DEFAULT_MODEL")),
     U_(ndat(), ndat()), Vt_(ndat(), nfreq()), Sigma_(ndat(), ndat()),

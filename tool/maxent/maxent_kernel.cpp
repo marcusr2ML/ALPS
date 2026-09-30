@@ -14,7 +14,7 @@
 #include "maxent_string.hpp"
 
 
-kernel::kernel(alps::params &p, const vector_type& freq, vector_type &inputGrid):
+kernel::kernel(maxent::params &p, const vector_type& freq, vector_type &inputGrid):
 ndat_(p["NDAT"]),
 nfreq_(p["NFREQ"]),
 T_(1./static_cast<double>(p["BETA"])),
@@ -266,7 +266,7 @@ std::vector<double> scaled_spherical_bessel_i(int lmax, double x) {
 /// this is evaluated as -sqrt(2l+1) beta sigma_l [i_l(|a|) exp(-|a|)] / (1 + exp(-2|a|)),
 /// sigma_l = (-1)^l for a > 0 and 1 otherwise, which stays finite for any beta omega.
 /// (The same kernel is used for the bosonic case, B17.)
-void kernel::setup_legendre_kernel(const alps::params &/*p*/, const vector_type& freq, const int lmax){
+void kernel::setup_legendre_kernel(const maxent::params &/*p*/, const vector_type& freq, const int lmax){
     const double beta = 1. / T_;
     for (int j = 0; j < nfreq_; ++j) {
         const double a = 0.5 * beta * freq[j];

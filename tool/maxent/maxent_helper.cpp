@@ -19,7 +19,7 @@
 #include "maxent_string.hpp"
 //NOTE: size1= rows; size2=columns
 
-MaxEntHelper::MaxEntHelper(alps::params& p) :
+MaxEntHelper::MaxEntHelper(maxent::params& p) :
 MaxEntParameters(p),
 bootstrap_seed_(p["SEED"].as<std::mt19937::result_type>()),
 def_(nfreq()), text_output(p["TEXT_OUTPUT"])

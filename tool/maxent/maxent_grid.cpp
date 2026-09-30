@@ -13,7 +13,7 @@
 #include<cmath>
 #include "maxent_string.hpp"
 
-grid::grid(const alps::params &p):
+grid::grid(const maxent::params &p):
 nfreq_(p["NFREQ"]),
 t_array_(nfreq_+1){
   std::string p_f_grid = p["FREQUENCY_GRID"];

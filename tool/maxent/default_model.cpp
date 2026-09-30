@@ -16,7 +16,7 @@
 
 
 ///This class deals with tabulated model functions
-TabFunction::TabFunction(const alps::params& p, std::string const& name){
+TabFunction::TabFunction(const maxent::params& p, std::string const& name){
   std::string p_name = p[name].as<std::string>();
   std::ifstream defstream(p_name.c_str());
   if (!defstream)
@@ -64,7 +64,7 @@ double TabFunction::operator()(const double omega) {
 }
 
 
-GeneralDefaultModel::GeneralDefaultModel(const alps::params& p, std::shared_ptr<Model> mod)
+GeneralDefaultModel::GeneralDefaultModel(const maxent::params& p, std::shared_ptr<Model> mod)
 : DefaultModel(p)
 , Mod(mod)
 , ntab(5001)
@@ -124,7 +124,7 @@ double GeneralDefaultModel::norm() {
   return sum;
 }
 
-std::shared_ptr<DefaultModel> make_default_model(const alps::params& parms, std::string const& name){
+std::shared_ptr<DefaultModel> make_default_model(const maxent::params& parms, std::string const& name){
   std::string p_name = parms[name].as<std::string>();
   to_lower(p_name);
   if (p_name == "flat") {

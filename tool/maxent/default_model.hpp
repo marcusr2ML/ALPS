@@ -12,7 +12,7 @@
 #pragma once
 
 #include <math.h>
-#include <alps/params.hpp>
+#include "maxent_parameters.hpp"
 #include <iostream>
 #include <memory>
 
@@ -36,7 +36,7 @@
 class DefaultModel 
 {
 public:
-  DefaultModel(const alps::params& p) :
+  DefaultModel(const maxent::params& p) :
     omega_max(p["OMEGA_MAX"]),
     omega_min( p.exists("OMEGA_MIN") ? p["OMEGA_MIN"] : -omega_max){ //we had a 0 here in the bosonic case. That's not a good idea if you're continuing symmetric functions like chi(omega)/omega. Change omega_min to zero manually if you need it.
   }
@@ -72,7 +72,7 @@ class FlatDefaultModel : public DefaultModel
 public:
 
   ///construct a default model that is constant (value 1/(omega_max-omega_min) ) everywhere
-  FlatDefaultModel(const alps::params& p) : DefaultModel(p) {}
+  FlatDefaultModel(const maxent::params& p) : DefaultModel(p) {}
 
   double omega(const double x) const {
     return x*(omega_max-omega_min) + omega_min;
@@ -106,7 +106,7 @@ public:
 class Gaussian : public Model 
 {
 public:
-  Gaussian(const alps::params& p) : sigma_(static_cast<double>(p["SIGMA"])) {}
+  Gaussian(const maxent::params& p) : sigma_(static_cast<double>(p["SIGMA"])) {}
 
   virtual double operator()(const double omega) {
     return std::exp(-omega*omega/2./sigma_/sigma_)/sqrt(2*M_PI)/sigma_;
@@ -127,7 +127,7 @@ private:
 class TwoGaussians : public Model
 {
 public:
-  TwoGaussians(const alps::params& p) : sigma1(static_cast<double>(p["SIGMA1"])),
+  TwoGaussians(const maxent::params& p) : sigma1(static_cast<double>(p["SIGMA1"])),
   sigma2(p["SIGMA2"].as<double>()),
   shift1(p["SHIFT1"].as<double>()), //0.0
   shift2(p["SHIFT2"].as<double>()),
@@ -149,7 +149,7 @@ private:
 class ShiftedGaussian : public Gaussian
 {
 public:
-  ShiftedGaussian(const alps::params& p) :
+  ShiftedGaussian(const maxent::params& p) :
     Gaussian(p), shift_(static_cast<double>(p["SHIFT"])){}
 
   double operator()(const double omega) {
@@ -168,7 +168,7 @@ protected:
 class DoubleGaussian : public ShiftedGaussian
 {
 public:
-  DoubleGaussian(const alps::params& p) :
+  DoubleGaussian(const maxent::params& p) :
     ShiftedGaussian(p){}
 
   double operator()(const double omega) {
@@ -183,7 +183,7 @@ public:
 class Lorentzian : public Model
 {
 public:
-  Lorentzian(const alps::params& p): gamma_(static_cast<double>(p["GAMMA"])) {}
+  Lorentzian(const maxent::params& p): gamma_(static_cast<double>(p["GAMMA"])) {}
 
   virtual double operator()(const double omega){
     return 1/(M_PI*gamma_) * 1.0/(1+(omega/gamma_)*(omega/gamma_));
@@ -199,7 +199,7 @@ private:
 class ShiftedLorentzian : public Lorentzian
 {
 public:
-  ShiftedLorentzian(const alps::params& p): 
+  ShiftedLorentzian(const maxent::params& p): 
   Lorentzian(p), shift_(static_cast<double>(p["SHIFT"])) {}
 
   double operator()(const double omega){
@@ -219,7 +219,7 @@ protected:
 class TwoLorentzians : public Model
 {
 public:
-  TwoLorentzians(const alps::params& p) : gamma1_(static_cast<double>(p["GAMMA1"])),
+  TwoLorentzians(const maxent::params& p) : gamma1_(static_cast<double>(p["GAMMA1"])),
   gamma2_(static_cast<double>(p["GAMMA2"])),
   shift1(static_cast<double>(p["SHIFT1"])), //0.0
   shift2(static_cast<double>(p["SHIFT2"])) {}
@@ -240,7 +240,7 @@ private:
 class DoubleLorentzian : public ShiftedLorentzian
 {
 public:
-  DoubleLorentzian(const alps::params& p) :
+  DoubleLorentzian(const maxent::params& p) :
     ShiftedLorentzian(p){}
 
   double operator()(const double omega) {
@@ -250,7 +250,7 @@ public:
 
 class LinearRiseExpDecay : public Model{
 public:
-  LinearRiseExpDecay(const alps::params &p): lambda_(p["LAMBDA"]){}
+  LinearRiseExpDecay(const maxent::params &p): lambda_(p["LAMBDA"]){}
   double operator()(const double omega) {
     return lambda_*lambda_*omega*std::exp(-lambda_*omega);
   }
@@ -261,7 +261,7 @@ private:
 
 class QuadraticRiseExpDecay : public Model{
 public:
-  QuadraticRiseExpDecay(const alps::params &p): lambda_(p["LAMBDA"]){}
+  QuadraticRiseExpDecay(const maxent::params &p): lambda_(p["LAMBDA"]){}
   double operator()(const double omega) {
     return (lambda_*lambda_*lambda_)/2.*(omega*omega)*std::exp(-lambda_*omega);
   }
@@ -273,7 +273,7 @@ private:
 class GeneralDoubleGaussian : public ShiftedGaussian
 {
 public:
-  GeneralDoubleGaussian(const alps::params& p) :
+  GeneralDoubleGaussian(const maxent::params& p) :
     ShiftedGaussian(p), bnorm_(static_cast<double>(p["BOSE_NORM"])) {}
 
   double operator()(const double omega) {
@@ -295,7 +295,7 @@ public:
   /// First column: frequency
   /// Second column: value of default model
   /// anything after that: ignored.
-  TabFunction(const alps::params& p, std::string const& name);
+  TabFunction(const maxent::params& p, std::string const& name);
 
   ///return value of default model. If INSIDE interval we have data in: return linearly interpolated data. Otherwise: return zero.
   double operator()(const double omega);
@@ -313,7 +313,7 @@ class GeneralDefaultModel : public DefaultModel
 {
 public:
 
-  GeneralDefaultModel(const alps::params& p, std::shared_ptr<Model> mod);
+  GeneralDefaultModel(const maxent::params& p, std::shared_ptr<Model> mod);
 
   ///given a number x between 0 and 1, find the frequency omega belonging to x.
   double omega(const double x) const;
@@ -335,4 +335,4 @@ private:
 
 
 
-std::shared_ptr<DefaultModel> make_default_model(const alps::params& parms, std::string const& name);
+std::shared_ptr<DefaultModel> make_default_model(const maxent::params& parms, std::string const& name);

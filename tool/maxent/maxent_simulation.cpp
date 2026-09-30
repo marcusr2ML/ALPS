@@ -16,7 +16,7 @@
 #include "eigen_hdf5.hpp"
 #include <iomanip>
 
-MaxEntSimulation::MaxEntSimulation(alps::params &parms)
+MaxEntSimulation::MaxEntSimulation(maxent::params &parms)
 : MaxEntHelper(parms)
 , alpha((int)parms["N_ALPHA"])              //This is the # of \alpha parameters that should be tried.
 , norm(parms["NORM"])                                             //The integral is normalized to NORM (use e.g. for self-energies
@@ -39,7 +39,7 @@ MaxEntSimulation::MaxEntSimulation(alps::params &parms)
     alpha[a] =  alpha[a-1] * std::pow(alpha_min/alpha_max, 1./double(alpha.size()-1));
 }
 ///define parameter defaults
-void MaxEntSimulation::define_parameters(alps::params &p){
+void MaxEntSimulation::define_parameters(maxent::params &p){
   p.description("Maxent - a utility for " 
     "performing analytic continuation \n \t using the method of Maximum Entropy\n");
   //---------------------------------

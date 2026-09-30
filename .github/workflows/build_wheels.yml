@@ -46,7 +46,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: _build/ccache
-          key: pyalps-ccache-${{ runner.os }}-${{ matrix.plat.arch }}-${{ hashFiles('src/**', 'python/**', 'applications/**', 'tool/maxent*') }}
+          key: pyalps-ccache-${{ runner.os }}-${{ matrix.plat.arch }}-${{ hashFiles('src/**', 'python/**', 'applications/**', 'tool/maxent/**') }}
           restore-keys: pyalps-ccache-${{ runner.os }}-${{ matrix.plat.arch }}-
 
       - name: Build wheels
@@ -83,7 +83,7 @@ jobs:
         run: |
           pipx run twine check dist/*.tar.gz
           tar -tzf dist/*.tar.gz > sdist-manifest.txt
-          for path in _vendor/lib/xml/ALPS.xsl _vendor/tool/maxent.cpp \
+          for path in _vendor/lib/xml/ALPS.xsl _vendor/tool/maxent/maxent.cpp \
                       _vendor/applications/dmft/qmc \
                       LICENSE.txt src/pyalps/__init__.py; do
             grep -q "$path" sdist-manifest.txt || { echo "missing $path in sdist"; exit 1; }

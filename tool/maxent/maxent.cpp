@@ -10,14 +10,14 @@
 *****************************************************************************/
 
 #include "maxent.hpp"
-#include <alps/utilities/fs/remove_extensions.hpp>
+#include "maxent_parameters.hpp"
 
 #include <iomanip>
 
 int main(int argc,const char** argv)
 {
   try {
-  alps::params parms(argc,argv); 
+  maxent::params parms(argc,argv); 
   MaxEntSimulation::define_parameters(parms);
   //other help messages
   parms.define("help.models","show help for default model");
@@ -90,7 +90,7 @@ int main(int argc,const char** argv)
 
   std::string basename;
   if(parms.defaulted("BASENAME")){
-    basename = alps::fs::remove_extensions(alps::origin_name(parms)) + ".out";
+    basename = maxent::remove_extensions(maxent::origin_name(parms)) + ".out";
     parms["BASENAME"] = basename;
   }
   else

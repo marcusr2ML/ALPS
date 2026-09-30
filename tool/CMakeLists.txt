@@ -79,17 +79,7 @@ endif(SQLite_FOUND)
   # Analytical continuation with MaxEnt
   #
 
-  if(LAPACK_FOUND)
-    add_definitions(${LAPACK_DEFINITIONS} -DBIND_FORTRAN_LOWERCASE_UNDERSCORE)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
-    add_executable(maxent maxent.cpp maxent_helper.cpp maxent_simulation.cpp maxent_parms.cpp)
-    target_link_libraries(maxent alps ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
-    install(TARGETS maxent RUNTIME DESTINATION bin COMPONENT tools)
-
-    # Regression test: linear-FREQUENCY_GRID runs must produce a finite
-    # spectrum (guards the t_array_ knot fill in maxent_parms.cpp).
-    add_executable(maxent_linear_grid_numeric maxent_linear_grid_numeric.cpp
-                   maxent_helper.cpp maxent_simulation.cpp maxent_parms.cpp)
-    target_link_libraries(maxent_linear_grid_numeric alps ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
-    add_alps_test(maxent_linear_grid_numeric)
-   endif(LAPACK_FOUND)
+  # tool/ is processed before the top-level enable_testing(); enable it here
+  # so ctest reaches the tests in tool/maxent and tool/alea
+  enable_testing()
+  add_subdirectory(maxent)

@@ -11,12 +11,12 @@
 
 #pragma once
 #include<vector>
-#include<alps/params.hpp>
+#include "maxent_parameters.hpp"
 #include "maxent_matrix_def.hpp"
 
 class grid{
 public:
-  grid(const alps::params &p);
+  grid(const maxent::params &p);
   const std::vector<double> &t_array() const{return t_array_;}
   double operator()(int i)const{return t_array_[i];}
 private:
