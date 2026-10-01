@@ -11,11 +11,14 @@
 
 #include "maxent.hpp"
 #include "maxent_parameters.hpp"
+#include "maxent_legacy_dispatch.hpp"
 
 #include <iomanip>
 
 int main(int argc,const char** argv)
 {
+  if (int failed = maxent::dispatch_legacy_input(argc, argv))
+    return failed;
   try {
   maxent::params parms(argc,argv); 
   MaxEntSimulation::define_parameters(parms);
