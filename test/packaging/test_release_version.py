@@ -76,7 +76,7 @@ def test_prerelease_sdist_keeps_its_version_without_the_build_environment(tmp_pa
         required = {
             "ALPS_VERSION.txt", "LICENSE.txt", "CMakeLists.txt", "pyproject.toml",
             "_build_support/alps_version.py", "src/pyalps/__init__.py",
-            "cpp/ngs/hdf5.cpp", "_vendor/tool/maxent.cpp",
+            "cpp/ngs/hdf5.cpp", "_vendor/tool/maxent/maxent.cpp",
             "_vendor/applications/dmft/qmc/hybridization/hybmain.cpp",
             "_vendor/applications/dmft/qmc/interaction_expansion2/main.cpp",
             "_vendor/lib/xml/ALPS.xsl", "_vendor/lib/xml/models.xml.in",

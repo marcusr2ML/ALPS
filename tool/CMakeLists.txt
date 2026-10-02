@@ -79,17 +79,28 @@ endif(SQLite_FOUND)
   # Analytical continuation with MaxEnt
   #
 
+  # tool/ is processed before the top-level enable_testing(); enable it here
+  # so ctest reaches the tests in tool/maxent and tool/alea
+  enable_testing()
+  add_subdirectory(maxent)
+
+  # The legacy maxent (ublas/LAPACK, HDF5 input files), kept as maxent_legacy
+  # for one release; maxent hands HDF5 input files to it. Added after
+  # tool/maxent so its LAPACK definitions and linker flags stay out of there.
   if(LAPACK_FOUND)
     add_definitions(${LAPACK_DEFINITIONS} -DBIND_FORTRAN_LOWERCASE_UNDERSCORE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
-    add_executable(maxent maxent.cpp maxent_helper.cpp maxent_simulation.cpp maxent_parms.cpp)
-    target_link_libraries(maxent alps ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
-    install(TARGETS maxent RUNTIME DESTINATION bin COMPONENT tools)
+    add_executable(maxent_legacy maxent.cpp maxent_helper.cpp maxent_simulation.cpp maxent_parms.cpp)
+    target_link_libraries(maxent_legacy alps ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
+    # next to maxent in the build tree too, where maxent looks for it
+    set_target_properties(maxent_legacy PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/maxent)
+    install(TARGETS maxent_legacy RUNTIME DESTINATION bin COMPONENT tools)
 
     # Regression test: linear-FREQUENCY_GRID runs must produce a finite
     # spectrum (guards the t_array_ knot fill in maxent_parms.cpp).
-    add_executable(maxent_linear_grid_numeric maxent_linear_grid_numeric.cpp
+    add_executable(maxent_legacy_linear_grid_numeric maxent_linear_grid_numeric.cpp
                    maxent_helper.cpp maxent_simulation.cpp maxent_parms.cpp)
-    target_link_libraries(maxent_linear_grid_numeric alps ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
-    add_alps_test(maxent_linear_grid_numeric)
-   endif(LAPACK_FOUND)
+    target_link_libraries(maxent_legacy_linear_grid_numeric alps ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
+    add_alps_test(maxent_legacy_linear_grid_numeric)
+  endif(LAPACK_FOUND)

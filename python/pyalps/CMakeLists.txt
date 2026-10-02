@@ -23,7 +23,7 @@ find_package(nanobind 2.10 CONFIG REQUIRED)
 
 get_filename_component(_repo_root "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 set(_alps_source_root "${_repo_root}")
-if(NOT EXISTS "${_alps_source_root}/tool/maxent.cpp")
+if(NOT EXISTS "${_alps_source_root}/tool/maxent/maxent.cpp")
   set(_alps_source_root "${CMAKE_CURRENT_SOURCE_DIR}/_vendor")
 endif()
 set(_bindings "${CMAKE_CURRENT_SOURCE_DIR}/cpp")
@@ -80,19 +80,45 @@ nanobind_add_module(pyngsrandom01_c ${_pyalps_nanobind_options} "${_bindings}/ng
 nanobind_add_module(pyngsaccumulator_c ${_pyalps_nanobind_options} "${_bindings}/ngs/accumulator.cpp")
 
 if(PYALPS_BUILD_APPLICATIONS)
-  if(NOT EXISTS "${_alps_source_root}/tool/maxent.cpp")
+  if(NOT EXISTS "${_alps_source_root}/tool/maxent/maxent.cpp")
     message(FATAL_ERROR
       "PYALPS_BUILD_APPLICATIONS requires an ALPS source checkout or pyalps sdist. "
       "Configure with -DPYALPS_BUILD_APPLICATIONS=OFF for the core-only package.")
   endif()
 
   set(_dmft "${_alps_source_root}/applications/dmft/qmc")
+  set(_maxent "${_alps_source_root}/tool/maxent")
+
+  # Maxent uses Eigen (header-only): an installed one, or the same pinned
+  # release tool/maxent/CMakeLists.txt downloads
+  find_package(Eigen3 3.3 CONFIG QUIET)
+  if(NOT TARGET Eigen3::Eigen)
+    include(FetchContent)
+    FetchContent_Declare(maxent_eigen
+      URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+      URL_HASH SHA256=8586084f71f9bde545ee7fa6d00288b264a2b7ac3607b974e54d13e7162c1c72
+      SOURCE_SUBDIR headers-only)
+    FetchContent_MakeAvailable(maxent_eigen)
+    add_library(maxent_eigen INTERFACE)
+    target_include_directories(maxent_eigen SYSTEM INTERFACE ${maxent_eigen_SOURCE_DIR})
+    add_library(Eigen3::Eigen ALIAS maxent_eigen)
+  endif()
+  configure_file("${_maxent}/maxent_config.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/maxent_config/maxent_config.hpp")
 
   nanobind_add_module(maxent_c ${_pyalps_nanobind_options}
-    "${_alps_source_root}/tool/maxent.cpp"
-    "${_alps_source_root}/tool/maxent_helper.cpp"
-    "${_alps_source_root}/tool/maxent_simulation.cpp"
-    "${_alps_source_root}/tool/maxent_parms.cpp")
+    "${_bindings}/maxent.cpp"
+    "${_maxent}/default_model.cpp"
+    "${_maxent}/maxent_backcont.cpp"
+    "${_maxent}/maxent_grid.cpp"
+    "${_maxent}/maxent_helper.cpp"
+    "${_maxent}/maxent_kernel.cpp"
+    "${_maxent}/maxent_parameters.cpp"
+    "${_maxent}/maxent_params.cpp"
+    "${_maxent}/maxent_simulation.cpp")
+  target_include_directories(maxent_c PRIVATE
+    "${_maxent}" "${CMAKE_CURRENT_BINARY_DIR}/maxent_config")
+  target_link_libraries(maxent_c PRIVATE Eigen3::Eigen)
 
   nanobind_add_module(cthyb ${_pyalps_nanobind_options}
     "${_dmft}/hybridization/hybmain.cpp"

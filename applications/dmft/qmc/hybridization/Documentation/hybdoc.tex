@@ -657,34 +657,32 @@ The Maximum entropy method, or MaxEnt, is used to analytically continue imaginar
 
 A correct error propagation that includes both the errors and the covariance matrices of the Green's function is absolutely essential for reliable continuations. Additionally, it helps to continue the self-energies instead of the Green's functions\cite{Wang09gap}.
 
-A tutorial for the ALPS maxent code will be provided elsewhere. Fig.~\ref{pfile} shows a simple parameter file
+A tutorial for the ALPS maxent code will be provided elsewhere. Fig.~\ref{pfile} shows a simple parameter file; run it with \verb|maxent in.param| (\verb|maxent --help| lists all parameters).
 
 \begin{figure*}
 \begin{verbatim}
-N_ALPHA = 60 //the number of alphas between alpha min and max
-ALPHA_MIN = 0.05 //smallest alpha value to be evaluated
-ALPHA_MAX = 5 //largest alpha value to be evaluated
-NORM = 1.0 //normalization of the function to be continued
-OMEGA_MAX = 25 //frequency range, symmetric by default. specify omega_min otherwise
-KERNEL = fermionic //Maxent kernel
-BETA = 60.0 //inverse temperature
-NFREQ = 2001 //number of output frequencies
-NDAT = 512 //number of input data points
-FREQUENCY_GRID = Lorentzian //frequency grid, e.g. Lorentzian, Linear, ...
-DATASPACE =frequency //dataspace, e.g. imag time or frequency
-MAX_IT = 2000 //number of iterations for iterative minimization procedure
+N_ALPHA = 60 #the number of alphas between alpha min and max
+ALPHA_MIN = 0.05 #smallest alpha value to be evaluated
+ALPHA_MAX = 5 #largest alpha value to be evaluated
+NORM = 1.0 #normalization of the function to be continued
+OMEGA_MAX = 25 #frequency range, symmetric by default. specify omega_min otherwise
+KERNEL = fermionic #Maxent kernel
+BETA = 60.0 #inverse temperature
+NFREQ = 2001 #number of output frequencies
+NDAT = 512 #number of input data points
+FREQUENCY_GRID = Lorentzian #frequency grid, e.g. Lorentzian, Linear, ...
+DATASPACE =frequency #dataspace, e.g. imag time or frequency
+MAX_IT = 2000 #number of iterations for iterative minimization procedure
 DEFAULT_MODEL = "flat"
-{
-PARTICLE_HOLE_SYMMETRY = 1  //either the model is particle hole symmetric or not
-X_0 = -1.58151510066 //data point X_0, here the lowest frequency point
+PARTICLE_HOLE_SYMMETRY = 1  #either the model is particle hole symmetric or not
+X_0 = -1.58151510066 #data point X_0, here the lowest frequency point
 X_1 = -1.19058822793
 ...etc...
 X_511 = -0.0186270492461
-SIGMA_0 = 0.00526104728966 //errors of X_0
+SIGMA_0 = 0.00526104728966 #errors of X_0
 SIGMA_1 = 0.00199036770537
 ...etc...
 SIGMA_511 = 3.42643209543e-07
-}
 \end{verbatim}
 \caption{A simple parameter file for the maxent code.\label{pfile}}
 \end{figure*}

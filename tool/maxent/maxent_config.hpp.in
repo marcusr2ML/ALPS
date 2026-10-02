@@ -1,0 +1,18 @@
+/*****************************************************************************
+*
+* ALPS Project Applications
+*
+* Copyright (C) 1998-2026 ALPS Collaboration
+*
+* ALPS Project: https://alps.comp-phys.org/
+* SPDX-License-Identifier: MIT
+*
+*****************************************************************************/
+
+#pragma once
+
+// Define if you have BLAS library
+#cmakedefine HAVE_BLAS
+//
+// // Define if you have LAPACK library
+#cmakedefine HAVE_LAPACK
