@@ -14,6 +14,9 @@
 *
 *****************************************************************************/
 
+// CI probe: this comment-only edit should not trigger any build jobs.
+/* A block comment, too. */
+
 /* $Id$ */
 
 #ifndef ALPS_LAMBDA_HPP

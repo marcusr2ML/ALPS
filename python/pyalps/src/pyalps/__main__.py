@@ -1,5 +1,5 @@
 """Locate pyalps' CMake package for downstream native extensions."""
-import argparse
+import argparse  # CI probe: comment-only edit
 
 from . import get_cmake_dir
 
