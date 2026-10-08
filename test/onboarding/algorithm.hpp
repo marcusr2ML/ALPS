@@ -61,7 +61,7 @@ public:
         double e = 0.0;
         for (int k = 0; k < p_.numParticles(); ++k) e += levels[k];
         if (!std::isfinite(e)) return std::nullopt;
-        return Estimate{e};
+        return Estimate{2.0 * e};  // BROKEN ON PURPOSE: off by a factor of 2
     }
 
     const char* name() const override { return "JacobiED"; }
