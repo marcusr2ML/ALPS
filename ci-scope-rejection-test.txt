@@ -1,0 +1,2 @@
+Intentional unrelated file outside contributions/submission/ for the CI scope-rejection test.
+This test pull request is expected to fail the Contribution scope check and should not be merged.
