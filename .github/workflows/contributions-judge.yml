@@ -1,9 +1,10 @@
 name: Contribution judge
 
-# Runs on every pull request that touches contributions/. A PR that adds a
-# submission may change nothing outside contributions/submission/, and passes
-# only if the overall rate meets the threshold in contributions/harness/judge.sh.
-# Nothing is filed here: contributions-file.yml does that once the PR is merged.
+# Runs on every pull request that touches contributions/, and passes only if the
+# overall rate meets the threshold in contributions/harness/judge.sh. Whether
+# the PR stayed inside contributions/submission/ is checked separately by
+# contributions-scope.yml, which a PR cannot edit. Nothing is filed here:
+# contributions-file.yml does that once the PR is merged.
 on:
   pull_request:
     paths:
@@ -40,13 +41,6 @@ jobs:
             exit 0
           fi
           echo "has_submission=true" >> "$GITHUB_OUTPUT"
-
-          outside=$(echo "$changed" | grep -v '^contributions/submission/' || true)
-          if [ -n "$outside" ]; then
-            echo "::error::A submission may only change contributions/submission/. Also changed:"
-            echo "$outside"
-            exit 1
-          fi
 
       - name: Judge submission
         if: steps.scope.outputs.has_submission == 'true'

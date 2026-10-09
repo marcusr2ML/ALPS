@@ -1,0 +1,50 @@
+name: Contribution scope
+
+# Fails any pull request that changes a file outside contributions/submission/,
+# so a submission cannot also edit the harness, the test catalog or these
+# workflows to pass itself.
+#
+# pull_request_target, not pull_request: this workflow always runs as it is on
+# the base branch, so a PR cannot weaken the check by editing this file. It
+# never checks out the PR's code; paths-filter reads the changed-file list
+# from the GitHub API.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: List files changed outside contributions/submission/
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d  # v4.0.3
+        with:
+          # 'every': a file counts only if it matches all patterns, i.e. it is
+          # anywhere in the repo and not under contributions/submission/.
+          predicate-quantifier: 'every'
+          list-files: json
+          filters: |
+            outside:
+              - '**'
+              - '!contributions/submission/**'
+
+      - name: Fail if anything outside contributions/submission/ changed
+        if: steps.filter.outputs.outside == 'true'
+        env:
+          # File names come from the PR, so they go through the environment,
+          # never into the script text.
+          FILES: ${{ steps.filter.outputs.outside_files }}
+        run: |
+          echo "::error::This pull request may only change files in contributions/submission/."
+          echo "Files changed outside it:"
+          echo "$FILES" | jq -r '.[] | "  " + .'
+          exit 1
+
+      - name: Scope OK
+        if: steps.filter.outputs.outside != 'true'
+        run: echo "Only contributions/submission/ changed."
