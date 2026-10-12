@@ -574,8 +574,12 @@ DMRGTask<value_type>::extract_mps()
     std::size_t d = alps_index[i].size();
     shapes[i][0] = (i == 0 ? 1 : d); shapes[i][1] = d; shapes[i][2] = (i == 0 ? d : 1);
     tensors[i].assign(d*d, value_type(0));
-    for (std::size_t p = 0; p < d; ++p)
-      tensors[i][alps_index[i][p]*d + p] = 1.;
+    for (std::size_t p = 0; p < d; ++p) {
+      if (i == 0)
+        tensors[i][alps_index[i][p]*d + p] = 1.;   // [1][s][bond]
+      else
+        tensors[i][p*d + alps_index[i][p]] = 1.;   // [bond][s][1]
+    }
   }
 
   // block k on the left adds site k-1, block k on the right adds site L-k
