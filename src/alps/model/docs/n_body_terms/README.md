@@ -28,6 +28,12 @@ installed; the feature itself is the code under `src/alps/lattice` and
     Full spectrum vs a dense reference; zero-mode counts vs the
     (2,2)-admissible patterns, with the unique Moore-Read ground state at
     2S = N - 2. N = 4, 6, 8; takes about 15 seconds.
+  - `alps_checks/t9_fcidump.py`: `alps2fcidump` (ALPS model -> FCIDUMP, see
+    [`../plaquette_terms.md`](../plaquette_terms.md)). Hubbard chains,
+    ladders with a 4-site correlated-hopping plaquette term and random
+    3- and 4-site (pq|rs) plaquettes: ALPS `fulldiag` vs PySCF FCI on the
+    exported FCIDUMP. Models FCIDUMP cannot hold must be refused. Needs
+    `pyscf`; takes about a minute.
   - `results/`: output of the runs above.
 
 Running: build ALPS with applications (`cmake --preset default
