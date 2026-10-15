@@ -1,8 +1,8 @@
 # n-site (plaquette) terms
 
 Terms acting on more than two sites. Supported by exact diagonalization
-(`fulldiag`, `sparsediag`). Other applications refuse a model that has
-plaquette terms on a lattice that has plaquettes.
+(`fulldiag`, `sparsediag`) and by `dmrg`. Other applications refuse a model
+that has plaquette terms on a lattice that has plaquettes.
 
 ## Lattice
 
@@ -77,6 +77,21 @@ N <= Nmax = 2. ... check convergence in Nmax.
 Leave `N` out of `CONSERVED_QUANTUMNUMBERS` for such terms. Fixed ranges
 (fermions, hard-core bosons) and ranges set by another quantum number (`Sz` in
 `-S..S`) are not cutoffs and give no warning.
+
+## DMRG
+
+`dmrg` takes the same input. Each product in the term becomes one DMRG term
+with one operator per site; operators that fall into the same block are
+combined and carried along as block operators, as for bond terms between
+distant sites. The same checks apply: a term that changes a quantum number in
+`CONSERVED_QUANTUMNUMBERS` is refused, and the cutoff warning above is printed.
+
+- The DMRG site order is the ALPS site order. Plaquettes may span any sites,
+  but terms between distant sites need more states for the same accuracy.
+- Every distinct product is a separate term with its own block operators, so
+  the cost grows with the number of products (for a molecular Hamiltonian,
+  O(N^4) in the number of orbitals).
+- `dmrg` needs at least 4 sites, for any model.
 
 A worked example (one 2x2 plaquette followed through the local table and the
 matrix fill), the benchmarks against QDK CASCI and exact results, and the

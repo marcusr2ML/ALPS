@@ -39,7 +39,7 @@ public:
   }
 
   // allow_plaquette_terms: only codes that apply n-site <PLAQUETTETERM>s
-  // (hamiltonian_matrix, i.e. exact diagonalization) pass true. Everyone else
+  // (hamiltonian_matrix, i.e. exact diagonalization, and dmrg) pass true. Everyone else
   // builds the Hamiltonian from site and bond terms and would silently drop
   // them, so a model with plaquette terms on a lattice with plaquettes is
   // refused.
@@ -54,7 +54,7 @@ public:
       boost::throw_exception(std::runtime_error(
         "The model has <PLAQUETTETERM>s (n-site terms) and the lattice has <PLAQUETTE>s, "
         "but this application supports only site and bond terms. "
-        "n-site terms are currently supported by exact diagonalization (fulldiag, sparsediag)."));
+        "n-site terms are currently supported by exact diagonalization (fulldiag, sparsediag) and dmrg."));
   }
 
   const ModelLibrary& model_library() const { return model_library_; }  

@@ -86,6 +86,9 @@ private:
   void build_bond_operator(alps::BondOperator const& bondop, bond_descriptor const& b, dmtk::Hami<value_type > &this_hami);  
   void build_2site_operator(std::pair<alps::SiteOperator,alps::SiteOperator> const& siteops, 
                             std::pair<int,int> sites, dmtk::Hami<value_type > &this_hami);
+  void build_plaquette_operator(std::vector<alps::nsite_product<value_type> > const& products,
+                                alps::NSiteOperator const& op, alps::plaquette const& p, dmtk::Hami<value_type > &this_hami);
+  std::vector<alps::nsite_product<value_type> > split_plaquette_operator(alps::NSiteOperator const& op, alps::plaquette const& p);
  
   void save_results(); 
   
@@ -100,6 +103,9 @@ private:
   dmtk::Hami<value_type > hami;
   dmtk::Lattice lattice;
   std::vector<dmtk::Block<value_type > > site_block;
+  // site operators (by site type and name) whose matrix is zero
+  std::map<std::pair<int,std::string>,bool> zero_site_operator;
+  bool warned_cutoff;
   
   int num_eigenvalues;
   int verbose;
@@ -136,7 +142,7 @@ template<class value_type>
 DMRGTask<value_type>::DMRGTask(const alps::ProcessList& w,const boost::filesystem::path& fn)
   : alps::scheduler::Task(w,fn)
   , alps::graph_helper<>(parms) 
-  , alps::model_helper<>(*this,parms)
+  , alps::model_helper<>(*this,parms,false,true)
   , alps::EigenvectorMeasurements<value_type >(*this)
 {
   init();
@@ -146,7 +152,7 @@ template<class value_type>
 DMRGTask<value_type>::DMRGTask(const alps::ProcessList& w,const alps::Parameters& p)
   : alps::scheduler::Task(w,p) 
   , alps::graph_helper<>(parms) 
-  , alps::model_helper<>(*this,parms)
+  , alps::model_helper<>(*this,parms,false,true)
   , alps::EigenvectorMeasurements<value_type >(*this)
 {
   init();
@@ -156,6 +162,7 @@ DMRGTask<value_type>::DMRGTask(const alps::ProcessList& w,const alps::Parameters
 template<class value_type>
 void DMRGTask<value_type>::init()
 {
+  warned_cutoff = false;
   num_eigenvalues = this->parms.value_or_default("NUMBER_EIGENVALUES",1);
    
   typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -331,6 +338,23 @@ void DMRGTask<value_type>::dostep()
   // create bond terms
   for (bond_iterator it = bonds().first ; it != bonds().second ; ++it)
     build_bond_operator(bond_term(bond_type(*it)),*it, hami);
+
+  // create n-site terms on the plaquettes. The split depends only on the
+  // plaquette type and the site types, so do it once per combination.
+  typedef std::pair<unsigned int,std::vector<int> > plaquette_key;
+  std::map<plaquette_key,std::vector<alps::nsite_product<value_type> > > split_cache;
+  for (std::size_t q = 0; q < plaquettes().size(); ++q) {
+    alps::plaquette const& p = plaquettes()[q];
+    alps::NSiteOperator term = model().plaquette_term(p.type);
+    if (term.term().empty())
+      continue;
+    plaquette_key key(p.type,std::vector<int>());
+    for (std::size_t r = 0; r < p.sites.size(); ++r)
+      key.second.push_back(site_type(p.sites[r]));
+    if (split_cache.find(key) == split_cache.end())
+      split_cache[key] = split_plaquette_operator(term, p);
+    build_plaquette_operator(split_cache[key], term, p, hami);
+  }
 
 //-------------------------------------------------------------
 
@@ -683,4 +707,72 @@ DMRGTask<value_type>::build_bond_operator(alps::BondOperator const& bondop, bond
   }
 }
 
+// Split an n-site term into products of site operators (nsiteoperator.h).
+// As in exact diagonalization, a term that changes a conserved quantum number
+// or has an odd number of fermion operators is refused (building the local
+// table checks both), and one that changes a quantity capped by a cutoff
+// (Nmax) warns.
+template<class value_type>
+std::vector<alps::nsite_product<value_type> >
+DMRGTask<value_type>::split_plaquette_operator(alps::NSiteOperator const& op, alps::plaquette const& p)
+{
+  std::vector<alps::SiteBasisDescriptor<short> > bases;
+  for (std::size_t r = 0; r < p.sites.size(); ++r)
+    bases.push_back(basis().site_basis(site_type(p.sites[r])));
+  alps::nsite_matrix<value_type> mat = op.template matrix<value_type>(bases,parms);
+  for (std::size_t i = 0; i < quantumnumber_names.size(); ++i)
+    if (conserved_quantumnumber[i] && mat.nonconserved.count(quantumnumber_names[i]))
+      boost::throw_exception(std::runtime_error("<PLAQUETTETERM> on plaquettes of type "
+        + boost::lexical_cast<std::string>(p.type) + " changes the total " + quantumnumber_names[i]
+        + ", which is in CONSERVED_QUANTUMNUMBERS. Remove it from CONSERVED_QUANTUMNUMBERS or fix the term."));
+  if (!warned_cutoff && !mat.nonconserved.empty()) {
+    std::string warning = alps::nsite_cutoff_warning(mat.nonconserved,bases,parms);
+    if (!warning.empty()) {
+      std::cerr << warning;
+      warned_cutoff = true;
+    }
+  }
+  return op.template split<value_type>(bases,parms);
+}
 
+// One dmtk term per product of the n-site term: coef * O_0 * O_1 * ... in
+// role order, one site operator per site of the plaquette. dmtk reorders the
+// operators by site with the fermion sign (Hami::reorder_terms).
+template<class value_type>
+void
+DMRGTask<value_type>::build_plaquette_operator(std::vector<alps::nsite_product<value_type> > const& products,
+                                               alps::NSiteOperator const& op, alps::plaquette const& p, dmtk::Hami<value_type > &this_hami)
+{
+  for (std::size_t t = 0; t < products.size(); ++t) {
+    dmtk::Term<value_type > real_t;
+    bool zero = false;
+    for (std::size_t r = 0; r < p.sites.size() && !zero; ++r) {
+      if (products[t].ops[r].empty())
+        continue;
+      int type = site_type(p.sites[r]);
+      alps::SiteOperator siteop(products[t].ops[r],op.sites()[r]);
+      std::string name = simplify_name(siteop);
+      std::pair<int,std::string> key(type,name);
+      if (zero_site_operator.find(key) == zero_site_operator.end()) {
+        boost::multi_array<value_type,2> m = alps::get_matrix(value_type(),siteop,site_basis(type),parms,true);
+        bool z = true;
+        for (std::size_t i = 0; i < m.shape()[0] && z; ++i)
+          for (std::size_t j = 0; j < m.shape()[1] && z; ++j)
+            if (std::abs(m[i][j]) > 1.e-10)
+              z = false;
+        zero_site_operator[key] = z;
+      }
+      if (zero_site_operator[key]) {
+        zero = true;
+        break;
+      }
+      dmtk::BasicOp<value_type > op1 = create_site_operator(name,siteop,type);
+      op1.set_site(p.sites[r]);
+      real_t = real_t*op1;
+    }
+    if (zero || real_t.size() == 0)
+      continue;
+    real_t.coef() = products[t].coef;
+    this_hami += real_t;
+  }
+}

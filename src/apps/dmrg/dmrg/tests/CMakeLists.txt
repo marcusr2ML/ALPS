@@ -14,4 +14,13 @@ if(TARGET dmrg AND TARGET parameter2xml)
       "-Dtest_dir=${CMAKE_CURRENT_BINARY_DIR}/dmrg-scratch"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/dmrg_scratch_cleanup.cmake")
   set_tests_properties(dmrg_scratch_cleanup PROPERTIES LABELS "dmrg" TIMEOUT 120)
+
+  add_test(NAME dmrg_plaquette_terms
+    COMMAND ${CMAKE_COMMAND}
+      "-Ddmrg=$<TARGET_FILE:dmrg>"
+      "-Dparameter2xml=$<TARGET_FILE:parameter2xml>"
+      "-Dxml_dir=${PROJECT_SOURCE_DIR}/src/alps/resources"
+      "-Dtest_dir=${CMAKE_CURRENT_BINARY_DIR}/dmrg-plaquette"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/dmrg_plaquette_terms.cmake")
+  set_tests_properties(dmrg_plaquette_terms PROPERTIES LABELS "dmrg" TIMEOUT 120)
 endif()

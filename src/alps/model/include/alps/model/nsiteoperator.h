@@ -44,6 +44,7 @@
 #include <boost/throw_exception.hpp>
 #include <map>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -154,6 +155,20 @@ private:
 };
 
 
+// One product of an n-site term, coef * O_0 * O_1 * ... * O_{n-1} in role
+// order, with the fermion sign of that reordering folded into coef. ops[r] is
+// the string of site operators on role r, e.g. "cdag_up(i)*c_up(i)", or empty
+// for the identity.
+template <class T>
+struct nsite_product
+{
+  T coef;
+  std::vector<std::string> ops;
+  bool odd;           // an odd number of fermionic operators
+  std::string text;   // the product as written, for error messages
+};
+
+
 // Splits one product term of an n-site operator into a coefficient and one
 // string of site operators per role, like BondOperatorSplitter for two sites.
 template <class I, class T = std::complex<double> >
@@ -252,6 +267,11 @@ public:
 
   void substitute_operators(const ModelLibrary& m, const Parameters& p = Parameters());
 
+  // The term as a sum of products, one string of site operators per role.
+  template <class T, class I>
+  std::vector<nsite_product<T> > split(const std::vector<SiteBasisDescriptor<I> >& bases,
+                                       const Parameters& p = Parameters()) const;
+
   // Local table on sites with the given site bases (one per role).
   template <class T, class I>
   nsite_matrix<T> matrix(const std::vector<SiteBasisDescriptor<I> >& bases,
@@ -289,7 +309,7 @@ private:
 
 
 template <class T, class I>
-nsite_matrix<T> NSiteOperator::matrix(const std::vector<SiteBasisDescriptor<I> >& b, const Parameters& p) const
+std::vector<nsite_product<T> > NSiteOperator::split(const std::vector<SiteBasisDescriptor<I> >& b, const Parameters& p) const
 {
   typedef typename expression_value_type_traits<T>::value_type value_type;
 
@@ -305,20 +325,12 @@ nsite_matrix<T> NSiteOperator::matrix(const std::vector<SiteBasisDescriptor<I> >
   for (std::size_t r = 0; r < n; ++r)
     parms.copy_undefined(bases[r].get_parameters());
 
-  std::vector<site_basis<I> > states;
-  nsite_matrix<T> mat;
-  for (std::size_t r = 0; r < n; ++r) {
-    states.push_back(site_basis<I>(bases[r]));
-    mat.dims.push_back(states[r].size());
-  }
-
   // parse expression and store it as sum of terms
   expression::Expression<value_type> ex(term());
   ex.flatten();
   ex.simplify();
 
-  // single-site operators already built, by (role, operator string)
-  std::map<std::pair<std::size_t, std::string>, int> built;
+  std::vector<nsite_product<T> > products;
   for (typename expression::Expression<value_type>::term_iterator tit = ex.terms().first; tit != ex.terms().second; ++tit) {
     NSiteOperatorSplitter<I, value_type> splitter(bases, sites(), parms);
     expression::Term<value_type> term(*tit);
@@ -329,19 +341,53 @@ nsite_matrix<T> NSiteOperator::matrix(const std::vector<SiteBasisDescriptor<I> >
     if (boost::is_arithmetic<T>::value || is_complex<T>::value)
       if (!can_evaluate(boost::lexical_cast<std::string>(term)))
         boost::throw_exception(std::runtime_error("Cannot evaluate expression " + boost::lexical_cast<std::string>(term)));
-    typename nsite_matrix<T>::product_type prod;
+    nsite_product<T> prod;
     prod.coef = evaluate<T>(term);
     if (!numeric::is_nonzero(prod.coef))
       continue;
+    for (std::size_t r = 0; r < n; ++r)
+      prod.ops.push_back(splitter.used(r) ? boost::lexical_cast<std::string>(splitter.site_operators(r)) : std::string());
+    prod.odd = splitter.odd();
+    prod.text = boost::lexical_cast<std::string>(*tit);
+    products.push_back(prod);
+  }
+  return products;
+}
+
+template <class T, class I>
+nsite_matrix<T> NSiteOperator::matrix(const std::vector<SiteBasisDescriptor<I> >& b, const Parameters& p) const
+{
+  std::vector<nsite_product<T> > products = split<T>(b, p);
+
+  const std::size_t n = num_sites();
+  std::vector<SiteBasisDescriptor<I> > bases(b);
+  Parameters parms(p);
+  for (std::size_t r = 0; r < n; ++r)
+    bases[r].set_parameters(p);
+  for (std::size_t r = 0; r < n; ++r)
+    parms.copy_undefined(bases[r].get_parameters());
+
+  std::vector<site_basis<I> > states;
+  nsite_matrix<T> mat;
+  for (std::size_t r = 0; r < n; ++r) {
+    states.push_back(site_basis<I>(bases[r]));
+    mat.dims.push_back(states[r].size());
+  }
+
+  // single-site operators already built, by (role, operator string)
+  std::map<std::pair<std::size_t, std::string>, int> built;
+  for (std::size_t t = 0; t < products.size(); ++t) {
+    typename nsite_matrix<T>::product_type prod;
+    prod.coef = products[t].coef;
 
     bool zero = false;
     std::map<std::string, half_integer<I> > change;
     for (std::size_t r = 0; r < n && !zero; ++r) {
-      if (!splitter.used(r)) {
+      if (products[t].ops[r].empty()) {
         prod.ops.push_back(-1);
         continue;
       }
-      std::pair<std::size_t, std::string> key(r, boost::lexical_cast<std::string>(splitter.site_operators(r)));
+      std::pair<std::size_t, std::string> key(r, products[t].ops[r]);
       std::map<std::pair<std::size_t, std::string>, int>::const_iterator it = built.find(key);
       if (it == built.end()) {
         multi_array<std::pair<T, bool>, 2> m = SiteOperator(key.second, sites()[r]).template matrix<T, I>(bases[r], parms);
@@ -367,15 +413,48 @@ nsite_matrix<T> NSiteOperator::matrix(const std::vector<SiteBasisDescriptor<I> >
     }
     if (zero)
       continue;
-    if (splitter.odd())
+    if (products[t].odd)
       boost::throw_exception(std::runtime_error("n-site term contains an odd number of fermion operators: "
-                                                + boost::lexical_cast<std::string>(*tit)));
+                                                + products[t].text));
     for (typename std::map<std::string, half_integer<I> >::const_iterator c = change.begin(); c != change.end(); ++c)
       if (c->second != half_integer<I>(0))
         mat.nonconserved.insert(c->first);
     mat.products.push_back(prod);
   }
   return mat;
+}
+
+// A term that changes a quantum number whose range is capped by a parameter
+// (e.g. a boson N with max="Nmax") gives results that depend on that cutoff:
+// matrix elements that would leave the range are dropped. Returns a warning
+// saying so, or an empty string. Fixed ranges (fermion 0..1) and ranges set by
+// another quantum number (Sz in -S..S) are physical, not a cutoff.
+template <class I>
+std::string nsite_cutoff_warning(const std::set<std::string>& nonconserved,
+                                 const std::vector<SiteBasisDescriptor<I> >& bases, const Parameters& p)
+{
+  for (std::size_t r = 0; r < bases.size(); ++r) {
+    SiteBasisDescriptor<I> b = bases[r];
+    b.set_parameters(p);
+    for (std::size_t q = 0; q < b.size(); ++q) {
+      if (!nonconserved.count(b[q].name()) || can_evaluate(b[q].max_expression()))
+        continue;
+      bool set_by_quantumnumber = false;
+      for (std::size_t o = 0; o < b.size(); ++o)
+        if (o != q && b[q].depends_on(b[o].name()))
+          set_by_quantumnumber = true;
+      if (set_by_quantumnumber)
+        continue;
+      std::ostringstream msg;
+      msg << "Warning: a <PLAQUETTETERM> changes the total " << b[q].name()
+          << ", whose local range is cut off at " << b[q].name() << " <= "
+          << b[q].max_expression() << " = " << b[q].max() << ". Matrix elements "
+          << "that would exceed the cutoff are dropped, so results depend on it; "
+          << "check convergence in " << b[q].max_expression() << ".\n";
+      return msg.str();
+    }
+  }
+  return std::string();
 }
 
 } // namespace alps
