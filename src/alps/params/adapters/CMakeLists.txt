@@ -3,10 +3,16 @@
 target_sources(alps PRIVATE
   params_from_file.cpp
   make_deprecated_parameters.cpp
-  make_parameters_from_xml.cpp)
+  make_parameters_from_xml.cpp
+  parameter_input.cpp)
 
 target_sources(alps_headers INTERFACE
   FILE_SET params_headers TYPE HEADERS
   BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include"
   FILES include/alps/ngs/make_deprecated_parameters.hpp
-        include/alps/ngs/make_parameters_from_xml.hpp)
+        include/alps/ngs/make_parameters_from_xml.hpp
+        include/alps/parameter_input.hpp)
+
+if(ALPS_BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
