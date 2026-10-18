@@ -81,7 +81,7 @@ namespace alps {
 
     void params::save(hdf5::archive & ar) const {
         for (params::const_iterator it = begin(); it != end(); ++it)
-            ar[it->first] << it->second;
+            ar[ar.encode_segment(it->first)] << it->second;
     }
 
     void params::load(hdf5::archive & ar) {
@@ -95,7 +95,7 @@ namespace alps {
                 value = value_reader_(reader);
             } else
                 ar[*it] >> value;
-            loaded.setter(*it, value);
+            loaded.setter(ar.decode_segment(*it), value);
         }
         keys.swap(loaded.keys);
         values.swap(loaded.values);
