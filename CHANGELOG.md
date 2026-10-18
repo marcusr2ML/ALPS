@@ -21,6 +21,8 @@ User-facing changes and migration notes are recorded here, starting with the bui
 - Correct the Heisenberg tutorial's vector dot product and allow its vector implementation to compile without x86 SIMD support.
 - Remove undefined behavior in XDR callbacks and integer-range boundary checks exposed by sanitizers.
 - Keep full double precision for parameter values substituted into `SITETERM`, `BONDTERM` and `NSITETERM` expressions. They were rounded to 6 significant digits, so for example `mu=0.123456789123` acted as `0.123457`. Inputs whose parameters have at most 6 significant digits are unchanged.
+- Store parameter values that do not evaluate to a number in HDF5 exactly as written. Previously they were rewritten as partially evaluated expressions (`Hirsch-Fye` became `Hirsch - Fye`, `x*cos(2*pi)` became `x`) and an empty value became `0`.
+- Quote parameter values in text output whenever the unquoted form would not parse back, such as values containing `:`, `,` or `"`, and write empty values instead of omitting them.
 
 ### Changed
 
