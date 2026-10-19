@@ -18,6 +18,7 @@
 *****************************************************************************/
 
 #include <alps/utility/cli.hpp>
+#include <alps/parameter_input.hpp>
 #include <alps/ngs/parapack/parapack.h>
 #include <alps/ngs/parapack/clone.h>
 #include <alps/ngs/parapack/clone_proxy.h>
@@ -326,8 +327,7 @@ int run_sequential(int argc, char **argv) {
     help.print(std::cout);
   })) return 0;
 
-  alps::ParameterList parameterlist;
-  std::cin >> parameterlist;
+  alps::ParameterList parameterlist = alps::read_parameter_list_text(std::cin);
   if (alps::cli_is_master() && !parameterlist.empty()) print_copyright(std::cerr);
 
 #ifdef _OPENMP
@@ -699,7 +699,7 @@ int run_sequential_mpi(int argc, char** argv) {
   boost::mpi::environment env(argc, argv);
   boost::mpi::communicator world;
   alps::ParameterList parameterlist;
-  if (world.rank() == 0) std::cin >> parameterlist;
+  if (world.rank() == 0) parameterlist = alps::read_parameter_list_text(std::cin);
   broadcast(world, parameterlist, 0);
   if (world.rank() == 0 && !parameterlist.empty()) print_copyright(std::cerr);
 
