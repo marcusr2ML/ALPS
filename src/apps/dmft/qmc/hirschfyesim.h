@@ -68,6 +68,9 @@ class HirschFyeRun : public alps::scheduler::MCRun
 public:
   ///
   HirschFyeRun(const alps::ProcessList&,const alps::Parameters&,int);
+private:
+  HirschFyeRun(const alps::ProcessList&,const alps::Parameters&,int,const alps::input::hirschfye_parameters&);
+public:
   ///store a dump of this simulation
   void save(alps::ODump&) const;
   ///load a previously saved simulation
@@ -89,7 +92,6 @@ public:
   
   
 private:
-  const alps::input::hirschfye_parameters input_;  // read first: the members below use it
   int sweeps;                    // sweeps done
   int thermalization_sweeps;        // sweeps to be done for equilibration
   int total_sweeps;                // sweeps to be done after equilibration

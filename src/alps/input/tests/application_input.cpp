@@ -1,11 +1,14 @@
 // Copyright (C) 2026 by the ALPS collaboration
 // SPDX-License-Identifier: MIT
+#include <alps/input/ctint.hpp>
 #include <alps/input/diag.hpp>
 #include <alps/input/dmft.hpp>
 #include <alps/input/hirschfye.hpp>
 #include <alps/input/dmrg.hpp>
 #include <alps/parameter_input.hpp>
 #include <gtest/gtest.h>
+#include <alps/testing/temporary_directory.hpp>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -17,6 +20,13 @@ namespace {
 alps::Parameters text(std::string const & parameters) {
     std::istringstream in(parameters);
     return alps::read_parameter_text(in);
+}
+
+// Typed params, read from a parameter file as the interaction program does.
+alps::params typed(std::string const & parameters) {
+    alps::testing::TemporaryDirectory dir;
+    std::ofstream(dir.path() / "parm") << parameters;
+    return alps::read_params_file((dir.path() / "parm").string());
 }
 
 TEST(DmrgInput, Defaults) {
@@ -324,6 +334,62 @@ TEST(HirschFyeInput, ResultNeedsSites) {
     EXPECT_EQ(sizes.n_matsubara, 32);
     EXPECT_EQ(sizes.sites, 1);
     EXPECT_EQ(sizes.flavors, 2);
+}
+
+std::string const ctint_required = "NMATSUBARA = 64\nN = 32\nSWEEPS = 100\nTHERMALIZATION = 10\nBETA = 5\nU = 2\nALPHA = -0.01\n";
+
+TEST(CtintInput, DmftDefaults) {
+    alps::input::ctint_parameters const p = alps::input::read_ctint_parameters(text(ctint_required));
+    EXPECT_EQ(p.max_order, 2048u);
+    EXPECT_EQ(p.flavors, 2u);
+    EXPECT_EQ(p.sites, 1u);
+    EXPECT_EQ(p.n_matsubara, 64u);
+    EXPECT_EQ(p.n_matsubara_measurements, 64u);
+    EXPECT_EQ(p.n_tau, 32u);
+    EXPECT_EQ(p.n_self, 320u);
+    EXPECT_EQ(p.mc_steps, 100u);
+    EXPECT_EQ(p.therm_steps, 10ul);
+    EXPECT_EQ(p.nruns, 1u);
+    EXPECT_EQ(p.max_time, 86400.);
+    EXPECT_EQ(p.recalc_period, 5000u);
+    EXPECT_EQ(p.measurement_period, 200u);
+    EXPECT_EQ(p.convergence_check_period, 5000u);
+    EXPECT_EQ(p.almost_zero, 1e-16);
+    EXPECT_EQ(p.seed, 0);
+    EXPECT_FALSE(p.histogram_measurement);
+    EXPECT_FALSE(p.atomic);
+    EXPECT_FALSE(p.tau_discretization_for_exp);
+    EXPECT_EQ(alps::input::read_ctint_parameters(text(ctint_required + "SWEEP_MULTIPLICATOR = 3\nRECALC_PERIOD = 10")).mc_steps, 300u);
+    EXPECT_EQ(alps::input::read_ctint_parameters(text(ctint_required + "RECALC_PERIOD = 10")).convergence_check_period, 10u);
+    EXPECT_THROW(alps::input::read_ctint_parameters(text("NMATSUBARA = 64\nN = 32")), std::runtime_error);
+}
+
+TEST(CtintInput, ProgramAcceptsHybridizationNames) {
+    alps::input::ctint_parameters const p = alps::input::read_ctint_parameters(typed(
+        "N_MATSUBARA = 64\nN_TAU = 32\nN_ORBITALS = 4\nN_MEAS = 50\nSWEEPS = 100\nTHERMALIZATION = 10\n"
+        "BETA = 5\nU = 2\nALPHA = -0.01\nINFILE = \"in.h5\"\nDMFT_FRAMEWORK = 1\nMAX_TIME = 30"));
+    EXPECT_EQ(p.n_matsubara, 64u);
+    EXPECT_EQ(p.n_tau, 32u);
+    EXPECT_EQ(p.flavors, 4u);
+    EXPECT_EQ(p.measurement_period, 50u);
+    EXPECT_EQ(p.max_time, 30.);
+    EXPECT_EQ(p.infile, "in.h5");
+    EXPECT_TRUE(p.dmft_framework);
+    alps::input::ctint_result_parameters const r = alps::input::read_ctint_result_parameters(typed(
+        "NMATSUBARA = 64\nN = 32\nBETA = 5\nINFILE = \"in.h5\"\nHISTOGRAM_MEASUREMENT = 1"));
+    EXPECT_EQ(r.n_self, 320u);
+    EXPECT_TRUE(r.histogram_measurement);
+    EXPECT_FALSE(r.dmft_framework);
+    EXPECT_EQ(alps::input::read_interaction_max_time(typed("MAX_TIME = 30")), 30);
+    EXPECT_THROW(alps::input::read_interaction_max_time(typed("N = 1")), std::runtime_error);
+}
+
+TEST(CtintInput, DmftResult) {
+    alps::input::ctint_result_parameters const r = alps::input::read_ctint_result_parameters(text(
+        "NMATSUBARA = 64\nN = 32\nBETA = 5\nCHECKPOINT = \"cp\"\nGET_COMPACTED_MEASUREMENTS = false"));
+    EXPECT_EQ(r.n_matsubara_measurements, 64u);
+    EXPECT_EQ(r.checkpoint, std::string("cp"));
+    EXPECT_FALSE(r.get_compacted_measurements);
 }
 
 }

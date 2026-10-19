@@ -35,13 +35,14 @@ void evaluate_selfenergy_measurement_itime_rs(const alps::results_type<HubbardIn
 void compute_greens_functions(const alps::results_type<HubbardInteractionExpansion>::type &results, const alps::parameters_type<HubbardInteractionExpansion>::type& parms, const std::string &output_file)
 {
   std::cout<<"getting result!"<<std::endl;
-  unsigned int n_matsubara = parms["NMATSUBARA"]|parms["N_MATSUBARA"];
-  unsigned int n_matsubara_measurements=parms["NMATSUBARA_MEASUREMENTS"] | (int)n_matsubara;
-  unsigned int n_tau=parms["N"]|parms["N_TAU"];
-  unsigned int n_self=parms["NSELF"] | (int)(10*n_tau);
-  spin_t n_flavors(parms["FLAVORS"] | (parms["N_ORBITALS"]| 2));
-  unsigned int n_site(parms["SITES"] | 1);
-  double beta(parms["BETA"]);
+  const alps::input::ctint_result_parameters input = alps::input::read_ctint_result_parameters(parms);
+  unsigned int n_matsubara = input.n_matsubara;
+  unsigned int n_matsubara_measurements=input.n_matsubara_measurements;
+  unsigned int n_tau=input.n_tau;
+  unsigned int n_self=input.n_self;
+  spin_t n_flavors(input.flavors);
+  unsigned int n_site(input.sites);
+  double beta(input.beta);
   itime_green_function_t green_itime_measured(n_tau+1, n_site, n_flavors);
   matsubara_green_function_t green_matsubara_measured(n_matsubara, n_site, n_flavors);
   boost::shared_ptr<FourierTransformer> fourier_ptr;
@@ -49,7 +50,7 @@ void compute_greens_functions(const alps::results_type<HubbardInteractionExpansi
   FourierTransformer::generate_transformer(alps::make_deprecated_parameters(parms), fourier_ptr_g0);
   //find whether our data is in imaginary time or frequency:
   bool measure_in_matsubara=true;
-  if(parms["HISTOGRAM_MEASUREMENT"] | false) 
+  if(input.histogram_measurement) 
     measure_in_matsubara=false;
   std::vector<double> mean_order=results["PertOrder"].mean<std::vector<double> >();
   
@@ -66,8 +67,8 @@ void compute_greens_functions(const alps::results_type<HubbardInteractionExpansi
   matsubara_green_function_t bare_green_matsubara(n_matsubara, n_site, n_flavors);
   std::vector<double> densities(n_flavors);
   {
-    alps::hdf5::archive ar(parms["INFILE"].cast<std::string>(),"r");
-    if(parms.defined("DMFT_FRAMEWORK") && static_cast<bool>(parms["DMFT_FRAMEWORK"])){
+    alps::hdf5::archive ar(input.infile,"r");
+    if(input.dmft_framework){
       //read in as green_function
       bare_green_matsubara.read_hdf5(ar,"/G0");
       

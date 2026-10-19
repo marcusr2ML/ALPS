@@ -80,8 +80,12 @@ void update_from_zero(dense_matrix & Green, dense_matrix & Green0, std::vector<i
 
 
 HirschFyeRun::HirschFyeRun(const alps::ProcessList& where,const alps::Parameters& p,int node)
+: HirschFyeRun(where,p,node,alps::input::read_hirschfye_parameters(p))
+{}
+
+HirschFyeRun::HirschFyeRun(const alps::ProcessList& where,const alps::Parameters& p,int node,
+                           const alps::input::hirschfye_parameters& input_)
 : alps::scheduler::MCRun(where,p,node),  
-input_(alps::input::read_hirschfye_parameters(parms)),
 sweeps(0),
 thermalization_sweeps(input_.thermalization),
 total_sweeps(input_.sweeps),
