@@ -18,6 +18,7 @@
 #ifndef ALPS_DMFT_HIRSCHFYESIM_H
 #define ALPS_DMFT_HIRSCHFYESIM_H
 
+#include <alps/input/hirschfye.hpp>
 #include "types.h"
 #include "hirschfyeaux.h"
 #include "alps_solver.h"
@@ -88,6 +89,7 @@ public:
   
   
 private:
+  const alps::input::hirschfye_parameters input_;  // read first: the members below use it
   int sweeps;                    // sweeps done
   int thermalization_sweeps;        // sweeps to be done for equilibration
   int total_sweeps;                // sweeps to be done after equilibration

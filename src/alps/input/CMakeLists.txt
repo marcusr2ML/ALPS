@@ -3,6 +3,7 @@
 target_sources(alps PRIVATE
   diag.cpp
   dmft.cpp
+  hirschfye.cpp
   dmrg.cpp)
 
 target_sources(alps_headers INTERFACE
@@ -10,6 +11,7 @@ target_sources(alps_headers INTERFACE
   BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include"
   FILES include/alps/input/diag.hpp
         include/alps/input/dmft.hpp
+        include/alps/input/hirschfye.hpp
         include/alps/input/dmrg.hpp)
 
 if(ALPS_BUILD_TESTING)
