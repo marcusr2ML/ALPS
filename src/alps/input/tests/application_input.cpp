@@ -3,6 +3,7 @@
 #include <alps/input/ctint.hpp>
 #include <alps/input/dmft.hpp>
 #include <alps/input/hirschfye.hpp>
+#include <alps/input/hybridization.hpp>
 #include <alps/parameter_input.hpp>
 #include <gtest/gtest.h>
 #include <alps/testing/temporary_directory.hpp>
@@ -226,6 +227,81 @@ TEST(CtintInput, DmftResult) {
     EXPECT_EQ(r.n_matsubara_measurements, 64u);
     EXPECT_EQ(r.checkpoint, std::string("cp"));
     EXPECT_FALSE(r.get_compacted_measurements);
+}
+
+std::string const hyb_required = "N_TAU = 100\nBETA = 10\nN_MEAS = 20\nTHERMALIZATION = 10\nSWEEPS = 100\nN_ORBITALS = 2\nMAX_TIME = 60\n";
+
+std::string check_message(std::string const & parameters) {
+    try {
+        alps::input::check_hybridization_parameters(typed(parameters));
+    } catch (std::invalid_argument const & error) {
+        return error.what();
+    }
+    return "";
+}
+
+TEST(HybridizationInput, ChecksRequiredParameters) {
+    EXPECT_EQ(check_message(hyb_required), "");
+    EXPECT_EQ(check_message("BETA = 10"), "please specify the parameter N_TAU");
+    EXPECT_EQ(check_message("N_TAU = 10\nBETA = 10\nN_MEAS = 1"), "please specify parameters THERMALIZATION, SWEEPS, and N_ORBITALS");
+    EXPECT_EQ(check_message(hyb_required + "MEASURE_freq = 1"), "please specify parameter N_MATSUBARA for # of Matsubara frequencies to be measured");
+    EXPECT_EQ(check_message(hyb_required + "MEASURE_g2w = 1\nN_w2 = 3\nN_W = 1"), "parameter N_w2 must be even");
+    EXPECT_EQ(check_message(hyb_required + "COMPUTE_VERTEX = 1\nMEASURE_freq = 1\nN_MATSUBARA = 10"),
+              "at least one two-particle quantity is required for computing the vertex, set MEASURE_g2w=1 or MEASURE_h2w=1");
+}
+
+TEST(HybridizationInput, Defaults) {
+    alps::input::hybridization_parameters const p = alps::input::read_hybridization_parameters(typed(hyb_required));
+    EXPECT_FALSE(p.verbose);
+    EXPECT_EQ(p.output_period, 100000);
+    EXPECT_EQ(p.thermalization_sweeps, 10u);
+    EXPECT_EQ(p.total_sweeps, 100u);
+    EXPECT_EQ(p.n_orbitals, 2u);
+    EXPECT_EQ(p.n_meas, 20u);
+    EXPECT_EQ(p.n_hist_orders, 50u);
+    EXPECT_TRUE(p.measure_time);
+    EXPECT_FALSE(p.measure_freq);
+    EXPECT_TRUE(p.accurate_covariance);
+    EXPECT_EQ(p.n_w, 0u);
+    EXPECT_EQ(p.n_t, 100u);
+    EXPECT_EQ(p.max_time, 60);
+    EXPECT_EQ(p.basepath, "");
+    EXPECT_FALSE(p.u_matrix);
+    EXPECT_EQ(alps::input::read_hybridization_max_time(typed(hyb_required)), 60);
+    EXPECT_THROW(alps::input::read_hybridization_max_time(typed("N_TAU = 1")), std::runtime_error);
+}
+
+TEST(HybridizationInput, InteractionAndChemicalPotential) {
+    alps::input::hybridization_interaction const u = alps::input::read_hybridization_interaction(typed("N_ORBITALS = 4\nU = 2\nJ = 0.25"));
+    EXPECT_EQ(u.U, 2.);
+    EXPECT_EQ(u.J, 0.25);
+    EXPECT_EQ(u.Uprime, 1.5);
+    EXPECT_THROW(alps::input::read_hybridization_interaction(typed("N_ORBITALS = 2")), std::invalid_argument);
+    alps::input::hybridization_interaction const file =
+        alps::input::read_hybridization_interaction(typed("N_ORBITALS = 2\nU_MATRIX = \"u.h5\"\nUMATRIX_IN_HDF5 = 1\nU = 3"));
+    EXPECT_EQ(file.u_matrix, std::string("u.h5"));
+    EXPECT_TRUE(file.u_matrix_in_hdf5);
+    EXPECT_TRUE(file.u_defined);
+    alps::input::hybridization_chemical_potential const mu = alps::input::read_hybridization_chemical_potential(typed("N_ORBITALS = 2"));
+    EXPECT_EQ(mu.mu, 0.);
+    EXPECT_FALSE(mu.mu_defined);
+    EXPECT_FALSE(mu.mu_vector);
+}
+
+TEST(HybridizationInput, FunctionFiles) {
+    EXPECT_THROW(alps::input::read_hybridization_function_input(typed("N_TAU = 0\nBETA = 1\nDELTA = \"d\"")), std::invalid_argument);
+    EXPECT_THROW(alps::input::read_hybridization_function_input(typed("N_TAU = 10\nBETA = 1")), std::invalid_argument);
+    alps::input::hybridization_function_input const delta = alps::input::read_hybridization_function_input(
+        typed("N_TAU = 10\nBETA = 4\nDELTA = \"d.h5\"\nDELTA_IN_HDF5 = 1\nDMFT_FRAMEWORK = 1"));
+    EXPECT_EQ(delta.beta, 4.);
+    EXPECT_EQ(delta.file, "d.h5");
+    EXPECT_TRUE(delta.in_hdf5);
+    EXPECT_TRUE(delta.dmft_framework);
+    EXPECT_FALSE(alps::input::read_retarded_interaction_input(typed("N_TAU = 0")).used);
+    alps::input::retarded_interaction_input const k = alps::input::read_retarded_interaction_input(typed("N_TAU = 10\nBETA = 4\nRET_INT_K = \"k.dat\""));
+    EXPECT_TRUE(k.used);
+    EXPECT_EQ(k.file, "k.dat");
+    EXPECT_FALSE(k.in_hdf5);
 }
 
 }

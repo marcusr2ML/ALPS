@@ -12,11 +12,12 @@
  *
  *****************************************************************************/
 
+#include <alps/input/hybridization.hpp>
 #include"hybconfig.hpp"
 
 hybridization_configuration::hybridization_configuration(const alps::params &p):
   Delta(p),
-  hybmat_((int)(p["N_ORBITALS"]), p)
+  hybmat_(alps::input::read_hybridization_configuration(p).n_orbitals, p)
 {
 }
 
