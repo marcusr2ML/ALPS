@@ -12,6 +12,7 @@
 
 #include <alps/solvers.hpp>
 #include <alps/ngs.hpp>
+#include <alps/input/ctint.hpp>
 #include <alps/parameter_input.hpp>
 #ifdef ALPS_HAVE_MPI
 #include <boost/mpi/environment.hpp>
@@ -27,8 +28,7 @@ int main(int argc, char** argv) {
     alps::params parms = alps::read_params_file(options.input_file);
     if (options.time_limit != 0)
       throw std::invalid_argument("time limit is passed in the parameter file!");
-    if (!parms.defined("MAX_TIME"))
-      throw std::runtime_error("parameter MAX_TIME is not defined. How long do you want to run the code for? (in seconds)");
+    alps::input::read_interaction_max_time(parms);
     alps::solvers::ctint(parms, options.output_file);
   } catch (std::exception const& exc) {
     std::cerr << exc.what() << '\n';

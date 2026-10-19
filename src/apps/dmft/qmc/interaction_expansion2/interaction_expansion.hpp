@@ -28,6 +28,7 @@
 #include "alps_solver.h"
 #include "fouriertransform.h"
 #include "U_matrix.h"
+#include <alps/input/ctint.hpp>
 #include "operator.hpp"
 #include "green_matrix.hpp"
 #include <alps/numeric/matrix.hpp>
@@ -214,6 +215,9 @@ class InteractionExpansion: public alps::mcbase
 public:
 
   InteractionExpansion(const alps::params& p, int rank);
+private:
+  InteractionExpansion(const alps::params& p, int rank, const alps::input::ctint_parameters& input);
+public:
   ~InteractionExpansion() {}
   bool is_thermalized() const {return true;} //thermalization is done in the constructor. It's not a big deal here.
   void update();

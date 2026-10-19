@@ -30,29 +30,34 @@ std::complex<double> *c_or_cdagger::exp_iomegan_tau_;
 
 
 InteractionExpansionRun::InteractionExpansionRun(const alps::ProcessList &where, const alps::Parameters &parms, int node)
+  : InteractionExpansionRun(where, parms, node, alps::input::read_ctint_parameters(parms))
+{}
+
+InteractionExpansionRun::InteractionExpansionRun(const alps::ProcessList &where, const alps::Parameters &parms, int node,
+                                                 const alps::input::ctint_parameters &input_)
   : alps::scheduler::MCRun(where,parms,node),
-    max_order(parms.value_or_default("MAX_ORDER",2048)),       
-    n_flavors(parms.value_or_default("FLAVORS",2)),        
-    n_site(parms.value_or_default("SITES",1)),        
-    n_matsubara((int)parms["NMATSUBARA"]),
-    n_matsubara_measurements(parms.value_or_default("NMATSUBARA_MEASUREMENTS", n_matsubara)),
-    n_tau((int)parms["N"]),
+    max_order(input_.max_order),       
+    n_flavors(input_.flavors),        
+    n_site(input_.sites),        
+    n_matsubara(input_.n_matsubara),
+    n_matsubara_measurements(input_.n_matsubara_measurements),
+    n_tau(input_.n_tau),
     n_tau_inv(1./n_tau),
-    n_self(parms.value_or_default("NSELF",10*n_tau)),
-    mc_steps((boost::uint64_t)parms["SWEEPS"]*(boost::uint64_t)parms.value_or_default("SWEEP_MULTIPLICATOR", 1L)),
-    therm_steps((unsigned int)parms["THERMALIZATION"]),        
-    nruns(parms.value_or_default("NRUNS", 1)),
-    max_time_in_seconds(parms.value_or_default("MAX_TIME", 86400)),        
-    beta((double)parms["BETA"]),                        
+    n_self(input_.n_self),
+    mc_steps(input_.mc_steps),
+    therm_steps(input_.therm_steps),        
+    nruns(input_.nruns),
+    max_time_in_seconds(input_.max_time),        
+    beta(input_.beta),                        
     temperature(1./beta),
-    onsite_U((double)parms["U"]),                        
-    alpha((double)parms["ALPHA"]),
+    onsite_U(input_.U),                        
+    alpha(input_.alpha),
     U(parms),                         
-    recalc_period(parms.value_or_default("RECALC_PERIOD",5000)),
-    measurement_period(parms.value_or_default("MEASUREMENT_PERIOD",200)),        
-    convergence_check_period(parms.value_or_default("CONVERGENCE_CHECK_PERIOD",recalc_period)),        
-    almost_zero(parms.value_or_default("ALMOSTZERO",1.e-16)),                
-    seed(parms.value_or_default("SEED",0)),
+    recalc_period(input_.recalc_period),
+    measurement_period(input_.measurement_period),        
+    convergence_check_period(input_.convergence_check_period),        
+    almost_zero(input_.almost_zero),                
+    seed(input_.seed),
     green_matsubara(n_matsubara, n_site, n_flavors),
     bare_green_matsubara(n_matsubara,n_site, n_flavors), 
     bare_green_itime(n_tau+1, n_site, n_flavors),
@@ -60,7 +65,7 @@ InteractionExpansionRun::InteractionExpansionRun(const alps::ProcessList &where,
     pert_hist(max_order)
 {
   //initialize measurement method
-  if (parms.value_or_default("HISTOGRAM_MEASUREMENT", false)) 
+  if (input_.histogram_measurement) 
     measurement_method=selfenergy_measurement_itime_rs;
   else 
     measurement_method=selfenergy_measurement_matsubara;
@@ -74,7 +79,7 @@ InteractionExpansionRun::InteractionExpansionRun(const alps::ProcessList &where,
   measurement_time=0;
   update_time=0;
   thermalized=therm_steps==0?true:false;
-  if(!parms.defined("ATOMIC")) {
+  if(!input_.atomic) {
     std::istringstream in_omega(parms["G0(omega)"]);
     read_freq(in_omega, bare_green_matsubara);
     FourierTransformer::generate_transformer(parms, fourier_ptr);
@@ -162,14 +167,15 @@ void InteractionExpansionRun::initialize_simulation(const alps::Parameters& parm
 
 void c_or_cdagger::initialize_simulation(const alps::Parameters &p)
 {
-  beta_=p["BETA"];
-  nm_=p.value_or_default("NMATSUBARA_MEASUREMENTS", p["NMATSUBARA"]);
+  const alps::input::ctint_parameters input = alps::input::read_ctint_parameters(p);
+  beta_=input.beta;
+  nm_=input.n_matsubara_measurements;
   omegan_ = new double[nm_];
   for(unsigned int i=0;i<nm_;++i) {
     omegan_[i]=(2.*i+1.)*boost::math::constants::pi<double>()/beta_;
   }
-  if(p.defined("TAU_DISCRETIZATION_FOR_EXP")) {
-    ntau_=p["TAU_DISCRETIZATION_FOR_EXP"];
+  if(input.tau_discretization_for_exp) {
+    ntau_=*input.tau_discretization_for_exp;
     use_static_exp_=true;
     exp_iomegan_tau_=new std::complex<double> [2*nm_*ntau_];
     if(exp_iomegan_tau_==0){
