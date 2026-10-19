@@ -107,8 +107,9 @@ void SparseDiagMatrix<T>::do_subspace()
   int n;
   
   if (this->dimension()>1) {
-    int max_iter = this->get_parameters().value_or_default("MAX_ITERATIONS",std::min(int(10*this->dimension()),1000));  
-    int num_eigenvalues = this->get_parameters().value_or_default("NUMBER_EIGENVALUES",1);
+    alps::input::diag_parameters const input = alps::input::read_diag_parameters(this->get_parameters());
+    int max_iter = input.max_iterations.value_or(std::min(int(10*this->dimension()),1000));
+    int num_eigenvalues = input.number_eigenvalues.value_or(1);
     ietl::lanczos_iteration_nlowest<double> iter(max_iter,num_eigenvalues);
     std::cerr << "Starting Lanczos \n";
     lanczos.calculate_eigenvalues(iter,generator);

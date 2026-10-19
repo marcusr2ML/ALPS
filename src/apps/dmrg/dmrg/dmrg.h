@@ -16,6 +16,7 @@
 
 #include "dmtk/dmtk.h"
 
+#include <alps/input/dmrg.hpp>
 #include <alps/model.h>
 #include <alps/lattice.h>
 #include <alps/scheduler.h>
@@ -113,6 +114,7 @@ private:
   int start_dir;
   int start_iter;
 
+  std::optional<std::string> temp_directory;
 };
 
 
@@ -156,57 +158,22 @@ DMRGTask<value_type>::DMRGTask(const alps::ProcessList& w,const alps::Parameters
 template<class value_type>
 void DMRGTask<value_type>::init()
 {
-  num_eigenvalues = this->parms.value_or_default("NUMBER_EIGENVALUES",1);
-   
-  typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-  boost::char_separator<char> sep(" ,");
+  alps::input::dmrg_parameters const input = alps::input::read_dmrg_parameters(parms);
+  num_eigenvalues = input.number_eigenvalues;
 
   dmtk::QN::init();
-  // read number of sweeps
-  num_sweeps = parms.value_or_default("SWEEPS",4);
-  start_sweep = parms.value_or_default("START_SWEEP",0);
-  start_dir = parms.value_or_default("START_DIR",0);
-  if(start_dir != 0 && start_dir != 1){
-    boost::throw_exception(std::runtime_error("START_DIR can assume the values 0 (left-to-right) or 1 (right-to-left)"));
-  }
-  start_iter = parms.value_or_default("START_ITER",1);
-  verbose = parms.value_or_default("VERBOSE",0);
+  num_sweeps = input.sweeps;
+  start_sweep = input.start_sweep;
+  start_dir = input.start_dir;
+  start_iter = input.start_iter;
+  verbose = input.verbose;
+  nwarmup = input.warmup_states;
+  error = input.truncation_error;
+  lanczos_tol = input.lanczos_tolerance;
+  maxstates = input.maxstates;
+  num_states = input.states;
+  temp_directory = input.temp_directory;
 
-  // read number of states
-  nwarmup = 20;
-  if (parms.defined("NUM_WARMUP_STATES")) {
-    nwarmup = static_cast<int>(parms["NUM_WARMUP_STATES"]);
-  }
-  error = -1.;
-  if (parms.defined("TRUNCATION_ERROR")) {
-    error = static_cast<double>(parms["TRUNCATION_ERROR"]);
-  }
-  lanczos_tol = -1.;
-  if (parms.defined("LANCZOS_TOLERANCE")) {
-    lanczos_tol = static_cast<double>(parms["LANCZOS_TOLERANCE"]);
-  }
-  maxstates = -1;
-  if (parms.defined("STATES")) {
-    std::string states_string = parms["STATES"];
-    tokenizer state_tokens(states_string, sep);
-    for (tokenizer::const_iterator it = state_tokens.begin(); it !=state_tokens.end();++it)
-      num_states.push_back(boost::lexical_cast<int>(*it));
-    if (num_states.size() < 2*num_sweeps)
-      boost::throw_exception(std::runtime_error("Need to specify either 2*SWEEPS different values in STATES, or one MAXSTATES value"));
-  }
-  else if (parms.defined("MAXSTATES")) {
-    maxstates = static_cast<int>(parms["MAXSTATES"]);
-    for (int i=0; i< 2*num_sweeps; ++i)
-      num_states.push_back((i+1)*maxstates/(2*num_sweeps));
-  }
-  else if (parms.defined("NUMSTATES")) {
-    maxstates = static_cast<int>(parms["NUMSTATES"]);
-    for (int i=0; i< 2*num_sweeps; ++i)
-      num_states.push_back(maxstates);
-  }
-  else 
-    boost::throw_exception(std::runtime_error("Need to specify either 2*SWEEPS different values in STATES, or one MAXSTATES value"));
-  
   // get all quantum numbers
   std::set<std::string> qns;
   for (site_iterator it = sites().first ; it != sites().second ; ++it) {
@@ -219,20 +186,13 @@ void DMRGTask<value_type>::init()
   std::copy(qns.begin(),qns.end(),std::back_inserter(quantumnumber_names));
   conserved_quantumnumber.resize(quantumnumber_names.size(),false);
   conserved_quantumnumber_value.resize(quantumnumber_names.size());
-  if (parms.defined("CONSERVED_QUANTUMNUMBERS")) {
-    std::string qn_string = parms["CONSERVED_QUANTUMNUMBERS"];
-    tokenizer qn_tokens(qn_string, sep);
-    std::vector<std::string> conserved_quantumnumber_names;
-    std::copy(qn_tokens.begin(),qn_tokens.end(),std::back_inserter(conserved_quantumnumber_names));
-    for (int i=0; i<conserved_quantumnumber_names.size(); i++) {
-      if (parms.defined(conserved_quantumnumber_names[i]+"_total")) {
-        int j = std::find(quantumnumber_names.begin(),quantumnumber_names.end(),conserved_quantumnumber_names[i])-quantumnumber_names.begin();
-        if (j >= quantumnumber_names.size())
-          boost::throw_exception(std::runtime_error("Quantum number " + conserved_quantumnumber_names[i] + " is not defined in the model" ));
-        conserved_quantumnumber[j] = true;
-        conserved_quantumnumber_value[j] = alps::evaluate<double>(static_cast<std::string>(parms[conserved_quantumnumber_names[i]+"_total"]),parms);
-      }
-    }
+  for (std::size_t i=0; i<input.conserved_totals.size(); i++) {
+    std::string const& name = input.conserved_totals[i].first;
+    int j = std::find(quantumnumber_names.begin(),quantumnumber_names.end(),name)-quantumnumber_names.begin();
+    if (j >= quantumnumber_names.size())
+      boost::throw_exception(std::runtime_error("Quantum number " + name + " is not defined in the model" ));
+    conserved_quantumnumber[j] = true;
+    conserved_quantumnumber_value[j] = input.conserved_totals[i].second;
   }
 }
 
@@ -253,9 +213,8 @@ void DMRGTask<value_type>::dostep()
 
   // Select scratch storage when this task runs; other tasks may have been
   // constructed since init().
-  if (parms.defined("TEMP_DIRECTORY")) {
-    std::string temp_dir = parms["TEMP_DIRECTORY"];
-    dmtk::tmp_files.set_temp_dir(temp_dir.c_str());
+  if (temp_directory) {
+    dmtk::tmp_files.set_temp_dir(temp_directory->c_str());
   } else {
     dmtk::tmp_files.set_temp_dir(alps::temp_directory_path().string().c_str());
   }

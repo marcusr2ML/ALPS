@@ -14,6 +14,7 @@
 #ifndef ALPS_SCHEDULER_DIAG_HPP
 #define ALPS_SCHEDULER_DIAG_HPP
 
+#include <alps/input/diag.hpp>
 #include <alps/type_traits/norm_type.hpp>
 #include <alps/scheduler/measurement_operators.h>
 #include <alps/model/model_helper.h>
@@ -78,8 +79,8 @@ DiagTask<T,G>::DiagTask(const ProcessList& where , const boost::filesystem::path
     , graph_helper<G>(this->get_parameters())
     , model_helper<>(this->get_parameters())
     , MeasurementOperators(this->get_parameters())
-    , print_vectors_(this->get_parameters().value_or_default("PRINT_EIGENVECTORS",false))
-    , save_vectors_(this->get_parameters().value_or_default("SAVE_EIGENVECTORS",false))
+    , print_vectors_(input::read_diag_parameters(this->get_parameters()).print_eigenvectors)
+    , save_vectors_(input::read_diag_parameters(this->get_parameters()).save_eigenvectors)
     , skipped_vectors_(false)
     , read_hdf5_(false)
 {
@@ -148,7 +149,7 @@ void DiagTask<T,G>::save(hdf5::archive & ar) const {
       ar << make_pvp(sectorpath + "/quantumnumbers/" + this->quantumnumbervalues_[i][j].first,
                      this->quantumnumbervalues_[i][j].second);
     ar << make_pvp(sectorpath + "/energies",eigenvalues_[i]);
-    if (calc_averages() || this->parms.value_or_default("MEASURE_ENERGY",true))
+    if (calc_averages() || input::read_diag_parameters(this->parms).measure_energy)
       ar << make_pvp(sectorpath,measurements_[i]);
     if (i < eigenvectors_.size()) {
       std::vector<std::size_t> shape(2);
@@ -186,8 +187,9 @@ template <class T, class G>
 void DiagTask<T,G>::write_xml_body(oxstream& out, const boost::filesystem::path& name,bool writeallxml) const
 {
   if (writeallxml) {
+    input::diag_parameters const parameters = input::read_diag_parameters(this->parms);
     for (unsigned i=0;i<eigenvalues_.size();++i) {
-      unsigned num_eigenvalues = (std::min)(unsigned(this->parms.value_or_default("NUMBER_EIGENVALUES",
+      unsigned num_eigenvalues = (std::min)(unsigned(parameters.number_eigenvalues.value_or(
                   eigenvalues_[i].size())),unsigned(eigenvalues_[i].size()));
       out << start_tag("EIGENVALUES") << attribute("number",num_eigenvalues);
       for (unsigned j=0;j<this->quantumnumbervalues_[i].size();++j)
@@ -198,9 +200,9 @@ void DiagTask<T,G>::write_xml_body(oxstream& out, const boost::filesystem::path&
       out << end_tag("EIGENVALUES");
     }
 
-    if (calc_averages() || this->parms.value_or_default("MEASURE_ENERGY",true)) {
+    if (calc_averages() || parameters.measure_energy) {
       for (unsigned i=0;i<eigenvalues_.size();++i) {
-         unsigned num_eigenvalues = (std::min)(unsigned(this->parms.value_or_default("NUMBER_EIGENVALUES",
+         unsigned num_eigenvalues = (std::min)(unsigned(parameters.number_eigenvalues.value_or(
                   eigenvalues_[i].size())),unsigned(eigenvalues_[i].size()));
         out << start_tag("EIGENSTATES") << attribute("number",num_eigenvalues);
         for (unsigned j=0;j<this->quantumnumbervalues_[i].size();++j)

@@ -15,6 +15,7 @@
 #include <alps/model/hamiltonian_matrix.hpp>
 #include <alps/lattice.h>
 #include <alps/scheduler/diag.hpp>
+#include <alps/input/diag.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/tokenizer.hpp>
@@ -90,16 +91,18 @@ void DiagMatrix<T,M>::dostep()
 {
   if (this->finished()) 
     return;
-  build_subspaces(this->alps::scheduler::Task::parms["CONSERVED_QUANTUMNUMBERS"]);
+  // Read before the sector loop below sets quantum numbers and momenta in parms.
+  alps::input::diag_parameters const input = alps::input::read_diag_parameters(this->alps::scheduler::Task::parms);
+  build_subspaces(input.conserved_quantumnumbers);
   std::vector<half_integer_type> indices(ranges_.size());
   std::vector<std::string> momenta;
-  if (this->alps::scheduler::Task::parms.value_or_default("TRANSLATION_SYMMETRY",true)) {
+  if (input.translation_symmetry) {
     std::vector<vector_type> k = this->translation_momenta();
     for (typename std::vector<vector_type>::const_iterator it=k.begin();it!=k.end();++it)
       momenta.push_back(alps::write_vector(*it));
   }
   unsigned ik=0;
-  bool loop_momenta = ! this->alps::scheduler::Task::parms.defined("TOTAL_MOMENTUM");    // Loop over momenta ?
+  bool loop_momenta = ! input.total_momentum;    // Loop over momenta ?
   bool done;
   do { 
     // set QN
