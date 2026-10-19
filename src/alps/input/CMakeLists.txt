@@ -5,6 +5,7 @@ target_sources(alps PRIVATE
   diag.cpp
   dmft.cpp
   hirschfye.cpp
+  hybridization.cpp
   dmrg.cpp)
 
 target_sources(alps_headers INTERFACE
@@ -14,6 +15,7 @@ target_sources(alps_headers INTERFACE
         include/alps/input/diag.hpp
         include/alps/input/dmft.hpp
         include/alps/input/hirschfye.hpp
+        include/alps/input/hybridization.hpp
         include/alps/input/dmrg.hpp)
 
 if(ALPS_BUILD_TESTING)
