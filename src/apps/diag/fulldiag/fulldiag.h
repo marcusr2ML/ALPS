@@ -20,6 +20,7 @@
 
 #include "../diag.h"
 #include "measurementplots.h"
+#include <alps/input/diag.hpp>
 
 #include <alps/plot.h>
 
@@ -110,91 +111,59 @@ void FullDiagMatrix<T>::evaluate(const alps::Parameters& parmsin,const std::stri
   alps::graph_helper<> lattice(this->get_parameters());
   p << parmsin;
   
-  bool have_t_range=false;
-  bool muN = false;        // coupling -mu N ?
-  magnitude_type tmin;
-  magnitude_type tmax;
-  magnitude_type deltaT;
-  
+  alps::input::fulldiag_evaluation_parameters const input = alps::input::read_fulldiag_evaluation_parameters(p);
+  bool muN = input.couple_mu;        // coupling -mu N ?
+
   conserved_name = "Sz";    // Default: Coupling -h Sz
-  std::string field_name = "h";
+  std::string field_name = input.field_name;
   std::string field_label = "Magnetic Field";
   std::string conserved_label = "Magnetization";
   std::string second_moment_name = "Uniform Susceptibility";
 
   // If you wish to change the coupling to a conserved quantity, you have to change the following block:  
-  muN = (p["couple"] == "mu");
-  if(p["couple"] == "MU")
-     muN = true;
   if(muN)            // Switch to coupling -mu N
    {
     conserved_name = "N";
-    field_name = "mu";
     field_label = "Chemical Potential";
     conserved_label = "Particle number";
     second_moment_name = "Compressibility";
    }
   // ... until here
 
-  std::string field_name_uc = boost::algorithm::to_upper_copy(field_name);
   std::string conserved_label_lc = boost::algorithm::to_lower_copy(conserved_label);
   boost::algorithm::replace_all(conserved_label_lc, " ", "_");
   std::string second_moment_name_lc = boost::algorithm::to_lower_copy(second_moment_name);
   boost::algorithm::replace_all(second_moment_name_lc, " ", "_");
 
-  measure_properties = p.value_or_default(muN?"MEASURE_CHARGE_PROPERTIES":
-                                  "MEASURE_MAGNETIC_PROPERTIES",1);
-  bool densities = p.value_or_default("DENSITIES",1);
+  measure_properties = input.measure_properties;
+  bool densities = input.densities;
 
   std::string dstr = densities?" Density":"";
   std::string sstr = densities?" per Site":""; 
 
   magnitude_type perSite = densities?num_sites(lattice.graph()):1;
 
-  bool versus_field = (p["versus"] == field_name);
-  if(p["versus"] == field_name_uc)
-      versus_field = true;
+  bool versus_field = input.versus_field;
 
   std::string vstr = versus_field?field_label:"Temperature";
 
-  if (p.defined("T_MAX") && p.defined("DELTA_T")) {
-    have_t_range=true;
-    tmin=p.value_or_default("T_MIN",0.);
-    tmax=p["T_MAX"];
-    deltaT=p["DELTA_T"];
-  }
-  
-  if (p.defined("T"))
-    beta = 1./double(p["T"]);
-  else if (p.defined("beta"))
-    beta = p["beta"];
-  else if (!have_t_range)
+  if (input.beta)
+    beta = *input.beta;
+  else if (!input.temperatures)
   {
     std::cerr << "DELTA_T and T_MAX or T need to be defined\n";
     return;
   }
 
-  if (!have_t_range) {
-   // define a T-range with 1 point
-   tmin = tmax = 1/beta;
-   deltaT = 1;
-  }
+  // without a T-range, a T-range with 1 point
+  magnitude_type tmin = input.temperatures ? input.temperatures->min : 1/beta;
+  magnitude_type tmax = input.temperatures ? input.temperatures->max : 1/beta;
+  magnitude_type deltaT = input.temperatures ? input.temperatures->delta : 1;
 
-  magnitude_type hmin;
-  magnitude_type hmax;
-  magnitude_type deltaH;
-  
-  if (p.defined(field_name_uc+"_MAX") && p.defined("DELTA_"+field_name_uc)) {
-    hmin=p.value_or_default(field_name_uc+"_MIN",0.);
-    hmax=p[field_name_uc+"_MAX"];
-    deltaH=p["DELTA_"+field_name_uc];
-    field0 = p.value_or_default(field_name, 0.);
-  }
-  else {
-   // define an h-range with 1 point
-   field0 = hmin = hmax = p.value_or_default(field_name, 0.);
-   deltaH = 1;
-  }
+  magnitude_type hmin = input.fields.min;
+  magnitude_type hmax = input.fields.max;
+  magnitude_type deltaH = input.fields.delta;
+  field0 = input.field;
 
   MeasurementsPlot<magnitude_type> plots (this->measurements_[0],vstr);
 
@@ -433,11 +402,12 @@ template <class T>
 void FullDiagMatrix<T>::write_xml_body(alps::oxstream& out, const boost::filesystem::path& p, bool writeallxml) const
 {
     alps::Parameters pa = this ->get_parameters();
-    if (writeallxml && (pa.defined("T") || pa.defined("beta"))) {
+    std::optional<alps::input::fulldiag_output_point> const point =
+        writeallxml ? alps::input::read_fulldiag_output_point(pa) : std::nullopt;
+    if (point) {
   
-        beta = (pa.defined("T") ? 1./double(pa["T"]) 
-                           : double(pa["beta"]));
-        field0 = field = pa.value_or_default("H",pa.value_or_default("h",0.));
+        beta = point->beta;
+        field0 = field = point->field;
     conserved_name = "Sz";    // Here we support only a coupling -h Sz
 
     min_val = groundstate_energy();

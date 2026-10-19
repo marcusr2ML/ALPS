@@ -13,6 +13,7 @@
  *
  *****************************************************************************/
 
+#include <alps/input/hybridization.hpp>
 #include <utility> // Boost.Math 1.76 includes this inside a namespace.
 #include <boost/math/constants/constants.hpp>
 #include"hyblocal.hpp"
@@ -23,13 +24,14 @@ crank_(crank),
 U_(p),
 mu_(p),
 K_(p){
-  beta_=p["BETA"];
-  n_orbitals_=p["N_ORBITALS"];
+  const alps::input::hybridization_configuration_parameters input = alps::input::read_hybridization_configuration(p);
+  beta_=input.beta;
+  n_orbitals_=input.n_orbitals;
 //    std::cerr << "Start ...";
   segments_.resize(n_orbitals_);
   zero_order_orbital_occupied_.resize(n_orbitals_,false);
 //    std::cerr << " done\n";
-  use_retarded_interaction_=p.defined("RET_INT_K");
+  use_retarded_interaction_=input.retarded_interaction;
   if(use_retarded_interaction_){
     double Kp0=K_.interpolate_deriv(0.0);//K'(0^+)
     U_.apply_shift(-2.*Kp0); //apply static shift caused by the retarded interaction

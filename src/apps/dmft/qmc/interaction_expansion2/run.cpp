@@ -10,6 +10,7 @@
  *
  *****************************************************************************/
 
+#include <alps/input/ctint.hpp>
 #include <alps/solvers.hpp>
 #include "interaction_expansion.hpp"
 #include "fouriertransform.h"
@@ -50,7 +51,7 @@ void alps::solvers::ctint(alps::params const& parms, std::string const& output_f
     std::cout << std::flush;
   }
   //run the simulation
-  s.run(boost::bind(&stop_requested, boost::posix_time::second_clock::local_time() + boost::posix_time::seconds((int)parms["MAX_TIME"])));
+  s.run(boost::bind(&stop_requested, boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(alps::input::read_interaction_max_time(parms))));
 
   //on the master: collect MC results and store them in file, then postprocess
   if (rank==0){

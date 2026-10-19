@@ -13,6 +13,7 @@
  *
  *****************************************************************************/
 
+#include <alps/input/hybridization.hpp>
 #include <alps/solvers.hpp>
 #include "hyb.hpp"
 #include "hybevaluate.hpp"
@@ -68,12 +69,12 @@ void alps::solvers::cthyb(alps::params const& parms, std::string const& output_f
     std::cout << std::flush;
   }
   //run the simulation
-  s.run(boost::bind(&stop_requested, boost::posix_time::second_clock::local_time() + boost::posix_time::seconds((int)parms["MAX_TIME"])));
+  s.run(boost::bind(&stop_requested, boost::posix_time::second_clock::local_time() + boost::posix_time::seconds((int)alps::input::read_hybridization_max_time(parms))));
 
   //on the master: collect MC results and store them in file, then postprocess
   if (global_mpi_rank==0){
     alps::results_type<hybridization>::type results = collect_results(s);
-    std::string output_path = boost::lexical_cast<std::string>(parms["BASEPATH"]|"")+"/simulation/results";
+    std::string output_path = alps::input::read_hybridization_parameters(parms).basepath+"/simulation/results";
     save_results(results, parms, output_file, output_path); //"/simulation/results");
     master_final_tasks(results, parms, output_file);
   }

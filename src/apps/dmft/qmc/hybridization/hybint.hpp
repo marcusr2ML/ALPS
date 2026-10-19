@@ -14,6 +14,7 @@
 
 #ifndef HYB_INT_HPP
 #define HYB_INT_HPP
+#include <alps/input/hybridization.hpp>
 #include <vector>
 #include <fstream>
 #include <alps/ngs.hpp>
@@ -47,11 +48,12 @@ class chemical_potential{
 public:
   chemical_potential(const alps::params &p){
     extern int global_mpi_rank;
-    val_.resize(p["N_ORBITALS"], p["MU"]|0.);
-    if(p.defined("MU_VECTOR")){
-      if(p.defined("MU") && !global_mpi_rank){ std::cout << "Warning::parameter MU_VECTOR defined, ignoring parameter MU" << std::flush << std::endl; };
-      std::string mufilename=p["MU_VECTOR"].cast<std::string>();
-      if(p.defined("MU_IN_HDF5") && p["MU_IN_HDF5"].cast<bool>()){//attempt to read from h5 archive
+    const alps::input::hybridization_chemical_potential input = alps::input::read_hybridization_chemical_potential(p);
+    val_.resize(input.n_orbitals, input.mu);
+    if(input.mu_vector){
+      if(input.mu_defined && !global_mpi_rank){ std::cout << "Warning::parameter MU_VECTOR defined, ignoring parameter MU" << std::flush << std::endl; };
+      std::string mufilename=*input.mu_vector;
+      if(input.mu_in_hdf5){//attempt to read from h5 archive
         alps::hdf5::archive ar(mufilename, alps::hdf5::archive::READ);
         ar>>alps::make_pvp("/MUvector",val_);
       }

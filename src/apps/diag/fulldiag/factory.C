@@ -24,9 +24,10 @@ alps::scheduler::Task* FullDiagFactory::make_task(const alps::ProcessList& w, co
     is_graph = lib.has_graph("GRAPH");
   if (parms.defined("LATTICE"))
     is_graph = is_graph || lib.has_graph("LATTICE");  
-  bool transl = parms.value_or_default("TRANSLATION_SYMMETRY",true) || parms.defined("TOTAL_MOMENTUM");
+  alps::input::diag_parameters const input = alps::input::read_diag_parameters(parms);
+  bool transl = input.translation_symmetry || input.total_momentum;
   bool use_complex = (is_graph ? false : transl);
-  return parms.value_or_default("COMPLEX",use_complex)  ?
+  return input.complex.value_or(use_complex)  ?
     static_cast<alps::scheduler::Task*>(new FullDiagMatrix<std::complex<double> >(w,fn)) :
     static_cast<alps::scheduler::Task*>(new FullDiagMatrix<double>(w,fn));
 }

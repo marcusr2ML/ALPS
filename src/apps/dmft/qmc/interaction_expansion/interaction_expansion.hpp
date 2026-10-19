@@ -30,6 +30,7 @@
 #include "alps_solver.h"
 #include "fouriertransform.h"
 #include "U_matrix.h"
+#include <alps/input/ctint.hpp>
 #include "operator.hpp"
 #include "green_matrix.hpp"
 
@@ -220,6 +221,9 @@ class InteractionExpansionRun: public alps::scheduler::MCRun
 public:
 
   InteractionExpansionRun(const alps::ProcessList &, const alps::Parameters &parms, int);
+private:
+  InteractionExpansionRun(const alps::ProcessList &, const alps::Parameters &parms, int, const alps::input::ctint_parameters& input);
+public:
   ~InteractionExpansionRun() {}
   bool is_thermalized() const {return true;} //thermalization is done in the constructor. It's not a big deal here.
   void dostep();

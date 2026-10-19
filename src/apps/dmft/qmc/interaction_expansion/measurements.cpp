@@ -38,7 +38,8 @@ std::pair<matsubara_green_function_t,itime_green_function_t> InteractionExpansio
 {
   std::istringstream in_omega(parms["G0(omega)"]);
   clock_t time0=clock();
-  if(parms.defined("CHECKPOINT")){ //write checkpoint
+  const alps::input::ctint_result_parameters input = alps::input::read_ctint_result_parameters(p_);
+  if(input.checkpoint){ //write checkpoint
     alps::Parameters *p=const_cast<alps::Parameters*>(&parms); //remove G0 from parameters as our xml parser cannot handle nested tags.
     p->erase(std::string("G0(omega)"));
     alps::Parameters::iterator it=p->begin();
@@ -49,7 +50,7 @@ std::pair<matsubara_green_function_t,itime_green_function_t> InteractionExpansio
       it++;
     }
     std::cout<<"end of sim, checkpointing"<<std::endl;
-    std::string fns=parms["CHECKPOINT"];
+    std::string fns=*input.checkpoint;
     fns+=".xml";
     boost::filesystem::path fn(fns);
     checkpoint(fn);
@@ -58,13 +59,13 @@ std::pair<matsubara_green_function_t,itime_green_function_t> InteractionExpansio
   std::cout<<"time for writing checkpoint was: "<<(time1-time0)/(double)CLOCKS_PER_SEC<<std::endl;
   ///end checkpoint
   std::cout<<"collecting results."<<std::endl;
-  unsigned int n_matsubara=p_["NMATSUBARA"];
-  unsigned int n_matsubara_measurements=p_.value_or_default("NMATSUBARA_MEASUREMENTS", n_matsubara);
-  unsigned int n_tau=p_["N"];
-  unsigned int n_self=p_.value_or_default("NSELF", 10*n_tau);
-  spin_t n_flavors(p_.value_or_default("FLAVORS",2));
-  unsigned int n_site(p_.value_or_default("SITES",1));
-  double beta(p_["BETA"]);
+  unsigned int n_matsubara=input.n_matsubara;
+  unsigned int n_matsubara_measurements=input.n_matsubara_measurements;
+  unsigned int n_tau=input.n_tau;
+  unsigned int n_self=input.n_self;
+  spin_t n_flavors(input.flavors);
+  unsigned int n_site(input.sites);
+  double beta(input.beta);
   itime_green_function_t green_itime_measured(n_tau+1, n_site, n_flavors);
   matsubara_green_function_t green_matsubara_measured(n_matsubara, n_site, n_flavors);
   boost::shared_ptr<FourierTransformer> fourier_ptr;
@@ -72,10 +73,10 @@ std::pair<matsubara_green_function_t,itime_green_function_t> InteractionExpansio
   FourierTransformer::generate_transformer(p_, fourier_ptr_g0);
   //find whether our data is in imaginary time or frequency:
   bool measure_in_matsubara=true;
-  if(p_.value_or_default("HISTOGRAM_MEASUREMENT", false)) 
+  if(input.histogram_measurement) 
     measure_in_matsubara=false;
   
-  const bool compactit = parms.value_or_default("GET_COMPACTED_MEASUREMENTS", true);
+  const bool compactit = input.get_compacted_measurements;
   if (!compactit) 
     std::cout << "getting non-compacted measurements\n";
   alps::ObservableSet gathered_measurements=get_measurements(compactit);
