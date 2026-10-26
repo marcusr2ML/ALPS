@@ -16,6 +16,7 @@
 
 #include "dmtk/dmtk.h"
 #include "mps_export.h"
+#include "checkpoint_cache.h"
 
 #include <alps/model.h>
 #include <alps/lattice.h>
@@ -69,6 +70,8 @@ public:
   // iteration measurements
   std::map<std::string,std::vector<double> > iteration_measurements;
 
+  void checkpoint_iteration(const dmtk::System<value_type >& S);
+
 private:
 
   alps::SiteOperator make_site_term(std::string x)
@@ -82,6 +85,7 @@ private:
   
   
   void init();
+  void use_temporary_directory();
   dmtk::BasicOp<value_type > create_site_operator(std::string const& name, alps::SiteOperator const& siteop, int type);
   void build_site_operator(alps::SiteOperator const& siteop, int site, dmtk::Hami<value_type > &);
   void build_bond_operator(alps::BondOperator const& bondop, bond_descriptor const& b, dmtk::Hami<value_type > &this_hami);  
@@ -115,6 +119,10 @@ private:
   int start_dir;
   int start_iter;
 
+  // Failed runs keep their files and a rerun resumes from them
+  dmrg_checkpoint::Cache checkpoint;
+  bool in_sweeps = false;
+
   // SAVE_MPS: final state as tensors [left bond][local state][right bond]
   bool save_mps;
   std::vector<std::vector<value_type> > mps_tensors;
@@ -134,8 +142,22 @@ handler(dmtk::System<value_type>& S, size_t signal_id, void *data)
     task.iteration_measurements["Energy"].push_back(S.energy[0]);
     task.iteration_measurements["Truncation Error"].push_back(S.truncation_error());
     task.iteration_measurements["Entropy"].push_back(S.entropy());
+    task.checkpoint_iteration(S);
   }
   return false;
+}
+
+template<class value_type>
+void DMRGTask<value_type>::checkpoint_iteration(const dmtk::System<value_type >& S)
+{
+  // warmup and the final sweep are redone after a failure
+  if (!in_sweeps || S.in_warmup() || !checkpoint.active())
+    return;
+  dmrg_checkpoint::Position at = {S.get_sweep(), int(S.get_dir()), int(S.get_iter())};
+  std::ostringstream note;
+  note << "sweep " << at.sweep << "/" << num_sweeps << ", "
+       << (at.dir == dmtk::LEFT2RIGHT ? "left-to-right" : "right-to-left") << " iteration " << at.iter;
+  checkpoint.commit(dmrg_checkpoint::write_progress(at, note.str(), iteration_measurements));
 }
 
 template<class value_type>
@@ -178,6 +200,7 @@ void DMRGTask<value_type>::init()
   start_iter = parms.value_or_default("START_ITER",1);
   verbose = parms.value_or_default("VERBOSE",0);
   save_mps = parms.value_or_default("SAVE_MPS",false);
+  checkpoint.configure(parms);
 
   // read number of states
   nwarmup = 20;
@@ -253,19 +276,26 @@ std::string simplify_name(const SiteOp &op)
 }
 
 template<class value_type>
-void DMRGTask<value_type>::dostep() 
+void DMRGTask<value_type>::use_temporary_directory()
 {
-  if (finished())
-    return;
-
-  // Select scratch storage when this task runs; other tasks may have been
-  // constructed since init().
   if (parms.defined("TEMP_DIRECTORY")) {
     std::string temp_dir = parms["TEMP_DIRECTORY"];
     dmtk::tmp_files.set_temp_dir(temp_dir.c_str());
   } else {
     dmtk::tmp_files.set_temp_dir(alps::temp_directory_path().string().c_str());
   }
+}
+
+template<class value_type>
+void DMRGTask<value_type>::dostep()
+{
+  if (finished())
+    return;
+
+  // Select scratch storage when this task runs; other tasks may have been
+  // constructed since init().
+  if (!checkpoint.enabled())
+    use_temporary_directory();
 
   dmtk::Lattice l(num_sites(),dmtk::OBC);
   hami = dmtk::Hami<value_type >(l);
@@ -451,6 +481,14 @@ void DMRGTask<value_type>::dostep()
   hami = hami.reorder_terms();
   if(verbose)
     cout << hami.description() << endl;
+  if (checkpoint.enabled()) {
+    if (!checkpoint.open(dmrg_checkpoint::fingerprint(parms, hami.description(), DMRG_VERSION)))
+      use_temporary_directory();
+    else if (parms.defined("TEMP_DIRECTORY"))
+      std::cout << "ALPS DMRG: TEMP_DIRECTORY is not used while checkpoints are on; set CHECKPOINT=0 to use it" << std::endl;
+  }
+
+  try {
   this->system = dmtk::System<value_type >(hami,l,"ALPS");
   dmtk::System<value_type > &S = this->system;
   S.set_store_products(false);
@@ -471,12 +509,32 @@ void DMRGTask<value_type>::dostep()
     for(int j = 0; j < 2; j++) {
       nstates(j,i) = num_states[i*2+j];
     }
-  S.start(num_sweeps, nstates); 
-  if(start_sweep != 0) {
+  S.start(num_sweeps, nstates);
+  dmrg_checkpoint::Position at;
+  std::string note;
+  in_sweeps = true;
+  if(checkpoint.active() && !checkpoint.record().empty()
+     && dmrg_checkpoint::read_progress(checkpoint.record(), at, note, iteration_measurements)) {
+    // continue after the last committed iteration
+    int sweep_max = S.full_sweep() ? num_sites()-2 : num_sites()-3;
+    int sweep = at.sweep, dir = at.dir, iter = at.iter + 1;
+    if (iter >= sweep_max) {
+      iter = 1;
+      if (dir == dmtk::RIGHT2LEFT) {
+        dir = dmtk::LEFT2RIGHT;
+      } else {
+        dir = dmtk::RIGHT2LEFT;
+        ++sweep;
+      }
+    }
+    std::cout << "ALPS DMRG: resuming from checkpoint after " << note << std::endl;
+    S.resume(sweep, dir, iter);
+  } else if(start_sweep != 0) {
     S.resume(start_sweep, start_dir, start_iter);
   } else {
     S.run(nwarmup);
   }
+  in_sweeps = false;
   if(S.store_products()) S.set_full_sweep(true);
   S.corr += meas_terms;
   S.final_sweep(num_states[num_states.size()-1], dmtk::RIGHT2LEFT, 1, true); 
@@ -493,7 +551,14 @@ void DMRGTask<value_type>::dostep()
   }
   this->average_values["Truncation error"].push_back(S.truncation_error());
   finish();
+  } catch (...) {
+    in_sweeps = false;
+    checkpoint.failed();
+    dmtk::tmp_files.cleanup();
+    throw;
+  }
   dmtk::tmp_files.cleanup();
+  checkpoint.succeeded();
 }
 
 
@@ -626,7 +691,7 @@ DMRGTask<value_type>::extract_mps()
   // two-site wave function of the last step
   char file[255];
   snprintf(file, sizeof(file), "gs_%s_%i_l.dat", "ALPS", n);
-  std::ifstream in(dmtk::tmp_files.get_filename(file), std::ios::in|std::ios::binary);
+  std::ifstream in(dmtk::tmp_files.get_read_filename(file), std::ios::in|std::ios::binary);
   if (!in)
     boost::throw_exception(std::runtime_error(std::string("SAVE_MPS: could not read ") + file));
   dmtk::VectorState<value_type > gs;
