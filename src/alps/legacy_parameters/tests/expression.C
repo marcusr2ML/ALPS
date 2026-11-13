@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <complex>
+#include <stdexcept>
 #include <vector>
 
 namespace {
@@ -86,6 +87,11 @@ TEST(Expression, RejectsUnresolvedSelfReference) {
   alps::ParameterEvaluator evaluator(params);
   EXPECT_FALSE(alps::Expression("error").can_evaluate(evaluator));
   EXPECT_FALSE(alps::can_evaluate(std::string("error"), params));
+}
+
+TEST(Expression, RejectsUnclosedBracketInName) {
+  EXPECT_THROW(alps::Expression("J[0"), std::runtime_error);
+  EXPECT_THROW(alps::Expression("2*J[0+1"), std::runtime_error);
 }
 
 TEST(Expression, PreservesDefaultRandomSequence) {
