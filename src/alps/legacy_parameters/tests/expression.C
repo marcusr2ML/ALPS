@@ -94,6 +94,12 @@ TEST(Expression, RejectsUnclosedBracketInName) {
   EXPECT_THROW(alps::Expression("2*J[0+1"), std::runtime_error);
 }
 
+TEST(Expression, RejectsUnclosedArgumentList) {
+  EXPECT_THROW(alps::Expression("max(1,2"), std::runtime_error);
+  EXPECT_THROW(alps::Expression("sqrt(L"), std::runtime_error);
+  EXPECT_THROW(alps::Expression("sqrt("), std::runtime_error);
+}
+
 TEST(Expression, PreservesDefaultRandomSequence) {
   // Rounded references from expression.output. Each random function has its
   // own default engine; exercise calls in the same order as the legacy test.
