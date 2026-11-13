@@ -18,6 +18,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <sstream>
 #include <stdexcept>
 
 TEST(XmlSerialization, Xmlstream) {
@@ -63,4 +64,14 @@ TEST(XmlSerialization, Xmlstream) {
         << alps::end_tag;
   }
   transcript.expect_output(ALPS_TEST_SOURCE_DIR "/xmlstream.output");
+}
+
+TEST(XmlSerialization, XmlstreamMultilineText) {
+  std::ostringstream out;
+  {
+    alps::oxstream oxs(out);
+    oxs << alps::start_tag("tag") << "line 1\nline 2\nline 3"
+        << alps::end_tag("tag");
+  }
+  EXPECT_EQ(out.str(), "<tag>\n  line 1\n  line 2\n  line 3\n</tag>\n");
 }
