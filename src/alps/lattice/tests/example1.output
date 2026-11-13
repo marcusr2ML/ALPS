@@ -21,8 +21,8 @@
       <VECTOR>sqrt(b*b-a*a/4) a/2</VECTOR>
     </BASIS>
     <RECIPROCALBASIS>
-      <VECTOR>a 0</VECTOR>
-      <VECTOR>sqrt(b*b-a*a/4) a/2</VECTOR>
+      <VECTOR>2*pi/a -4*pi*sqrt(b*b-a*a/4)/(a*a)</VECTOR>
+      <VECTOR>0 4*pi/a</VECTOR>
     </RECIPROCALBASIS>
   </LATTICE>
   <LATTICE name="chain lattice" dimension="1">
@@ -67,11 +67,11 @@
     <PARAMETER name="phi" default="Pi/2"/>
     <BASIS>
       <VECTOR>a 0</VECTOR>
-      <VECTOR>b*sin(phi) b*cos(phi)</VECTOR>
+      <VECTOR>b*cos(phi) b*sin(phi)</VECTOR>
     </BASIS>
     <RECIPROCALBASIS>
       <VECTOR>2*pi/a -2*pi/a/tan(phi)</VECTOR>
-      <VECTOR>0 2*pi/b/cos(phi)</VECTOR>
+      <VECTOR>0 2*pi/b/sin(phi)</VECTOR>
     </RECIPROCALBASIS>
   </LATTICE>
   <LATTICE name="orthorhombic lattice" dimension="3">
