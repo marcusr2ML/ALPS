@@ -38,6 +38,13 @@ if(Python_Interpreter_FOUND)
         "$<TARGET_FILE:parameter2hdf5>" "${PROJECT_SOURCE_DIR}/src/alps/resources")
     set_tests_properties(parameter2hdf5_overwrite PROPERTIES TIMEOUT 60 LABELS "cli")
   endif()
+  if(TARGET parameter2xml AND TARGET parameter2hdf5)
+    add_test(NAME parameter_tools_arguments
+      COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_parameter_tools_arguments.py"
+        "${PROJECT_SOURCE_DIR}/src/alps/resources"
+        "$<TARGET_FILE:parameter2xml>" "$<TARGET_FILE:parameter2hdf5>")
+    set_tests_properties(parameter_tools_arguments PROPERTIES TIMEOUT 60 LABELS "cli")
+  endif()
   if(TARGET spinmc)
     add_test(NAME scheduler_sweeps_spinmc
       COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check_scheduler_sweeps.py"
