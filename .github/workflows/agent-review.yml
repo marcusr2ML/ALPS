@@ -1,0 +1,74 @@
+name: agent gate
+
+# Deterministic PR gate (no LLM). Runs trusted base-revision scripts against
+# the PR diff, posts one summary comment, fails on BLOCK findings.
+# Pattern from tensor4all-rs review_bot.yml.
+
+on:
+  pull_request_target:
+    branches: [master, agent-trial]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: agent-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'agent-gate:waive') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted base revision (never run PR code here)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch PR head for diff only
+        id: refs
+        run: |
+          set -euo pipefail
+          n=${{ github.event.pull_request.number }}
+          git fetch --no-tags origin "+refs/pull/$n/head:refs/remotes/origin/pr-$n"
+          test "$(git rev-parse origin/pr-$n)" = "${{ github.event.pull_request.head.sha }}"
+          echo "head=origin/pr-$n" >> "$GITHUB_OUTPUT"
+
+      - name: Write PR body
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s' "$BODY" > pr_body.md
+
+      - name: Run gate
+        id: gate
+        run: |
+          set -o pipefail
+          python3 .github/scripts/agent/review_report.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ steps.refs.outputs.head }}" \
+            --body-file pr_body.md | tee report.md
+
+      - name: Post or update comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=${{ github.event.pull_request.number }}
+          marker='<!-- agent-gate -->'
+          { echo "$marker"; cat report.md; } > comment.md
+          id=$(gh api "repos/${{ github.repository }}/issues/$n/comments" \
+                 --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$id" -F body=@comment.md
+          else
+            gh pr comment "$n" -R "${{ github.repository }}" --body-file comment.md
+          fi
+
+  # TODO (phase C): physics invariance job — build the PR, run
+  # `pytest tests/physics -m "not heavy" --invariance`, compare fixed-seed
+  # outputs to master byte-for-byte; required for any T1 downgrade.

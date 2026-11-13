@@ -2,6 +2,21 @@
 
 <!-- What does this PR do and why? One or two sentences. -->
 
+## Tier
+
+<!-- One line, e.g. "Tier: T0". The agent gate computes the tier from the diff; if yours is lower, the gate blocks. See REPOSITORY_RULES.md §1. -->
+
+Tier: T?
+
+<!-- To block automated merging even when CI is green, add a line:  hold: <reason> -->
+
+## Verification
+
+<!-- Required. What did you run and what did it show?
+     Bug fix: the new test's output on master (failing) and on this branch (passing).
+     T1 refactor: confirm physics outputs are identical (fixed seeds).
+     T3: which physics checks moved, by how much, and why that is correct. -->
+
 ## Type of change
 
 <!-- Check all that apply -->
@@ -39,6 +54,7 @@
 - [ ] No new compiler warnings (`-Wall -Wextra`)
 - [ ] Code follows the style of the surrounding code
 - [ ] Commit messages are descriptive and in the imperative mood
+- [ ] Written or substantially written by an AI agent (name the agent/model): <!-- e.g. Claude Opus 5.5 -->
 
 ## Related issues
 

@@ -1,0 +1,42 @@
+{
+  "_comment": "Path -> minimum tier. First matching rule wins, so list most specific first. A PR's tier is the max over its files. Draft: review globs against src/ before use.",
+  "rules": [
+    {"glob": "tests/physics/references/**", "tier": 3, "why": "reference data"},
+    {"glob": "**/*.md",                     "tier": 0, "why": "markdown"},
+    {"glob": "src/alps/numerics/**",        "tier": 3, "why": "numerics"},
+    {"glob": "src/alps/model/**",           "tier": 3, "why": "Hamiltonian construction"},
+    {"glob": "src/alps/lattice/**",         "tier": 3, "why": "lattice/couplings"},
+    {"glob": "src/alps/alea/**",            "tier": 3, "why": "error analysis"},
+    {"glob": "src/alps/aleav2/**",          "tier": 3, "why": "error analysis"},
+    {"glob": "src/alps/accumulators/**",    "tier": 3, "why": "error analysis"},
+    {"glob": "src/alps/random/**",          "tier": 3, "why": "RNG"},
+    {"glob": "src/alps/ietl/**",            "tier": 3, "why": "eigensolvers"},
+    {"glob": "src/alps/solvers/**",         "tier": 3, "why": "solvers"},
+    {"glob": "src/alps/gf/**",              "tier": 3, "why": "Green's functions"},
+    {"glob": "src/apps/**",                 "tier": 3, "why": "simulation apps"},
+    {"glob": "third_party/**",              "tier": 3, "why": "vendored numerics"},
+
+    {"glob": "src/alps/xml/**",             "tier": 2},
+    {"glob": "src/alps/hdf5/**",            "tier": 2},
+    {"glob": "src/alps/params/**",          "tier": 2},
+    {"glob": "src/alps/legacy_parameters/**","tier": 2},
+    {"glob": "src/alps/input/**",           "tier": 2},
+    {"glob": "src/alps/cli/**",             "tier": 2},
+    {"glob": "src/alps/scheduler/**",       "tier": 2},
+    {"glob": "python/**",                   "tier": 2},
+    {"glob": "CMakeLists.txt",              "tier": 2},
+    {"glob": "**/CMakeLists.txt",           "tier": 2},
+    {"glob": "cmake/**",                    "tier": 2},
+    {"glob": "src/**",                      "tier": 2, "why": "default for other compiled code"},
+    {"glob": "legacy/**",                   "tier": 2},
+    {"glob": "tests/**",                    "tier": 1},
+    {"glob": "tutorials/**/*.py",           "tier": 1},
+    {"glob": ".github/workflows/**",        "tier": 1},
+    {"glob": ".github/scripts/**",          "tier": 1},
+
+    {"glob": ".github/ISSUE_TEMPLATE/**",   "tier": 0},
+    {"glob": "LICENSE.txt",                 "tier": 0}
+  ],
+  "default_tier": 2,
+  "_comment_t1": "A compiled-code PR (tier 2 by path) may be downgraded to T1 only by the physics invariance job reporting identical outputs AND the PR declaring 'Tier: T1'. A tier-3 path never downgrades automatically."
+}
