@@ -164,8 +164,8 @@ try {
     outbase = std::filesystem::path(inname).filename().string();
   if (std::filesystem::is_directory(outbase))
     outbase += '/' + std::filesystem::path(inname).filename().string();
-  if (!force && std::filesystem::exists(outbase + ".out.xml")) {
-    std::cerr << "Output files (" + outbase + ".out.xml, etc) exist.  "
+  if (!force && std::filesystem::exists(outbase + ".out.h5")) {
+    std::cerr << "Output files (" + outbase + ".out.h5, etc) exist.  "
               << "Please use '-f' option to force replacing input HDF5 files.\n"
               << "Do you really want to overwrite input files? [y/N] ";
     char res;
