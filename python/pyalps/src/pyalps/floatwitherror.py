@@ -166,6 +166,10 @@ class FloatWithError:
     z__deri__y__   = -x__.mean/(y__.mean*y__.mean)
     return FloatWithError(z__mean_,sqrt(z__deri__x__*z__deri__x__*x__.error*x__.error + z__deri__y__*z__deri__y__*y__.error*y__.error))
 
+  __truediv__ = __div__
+  __rtruediv__ = __rdiv__
+  __itruediv__ = __idiv__
+
 
   def __neg__(self):
     return FloatWithError(0-self.mean,self.error)
