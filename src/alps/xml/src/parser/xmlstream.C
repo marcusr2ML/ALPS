@@ -148,8 +148,11 @@ oxstream& oxstream::text_str(const std::string& text)
     std::size_t pos0 = 0;
     while (true) {
       std::size_t pos1 = text.find('\n', pos0);
-      os_ << text.substr(pos0, pos1);
-      if (pos1 == std::string::npos) break;
+      if (pos1 == std::string::npos) {
+        os_ << text.substr(pos0);
+        break;
+      }
+      os_ << text.substr(pos0, pos1 - pos0);
       if (linebreak_) {
         os_ << '\n';
         for (uint32_t i = 0; i < offset_; ++i) os_ << ' ';
