@@ -47,3 +47,7 @@ endforeach()
 add_executable(lattice_reciprocal_basis reciprocal_basis.cpp)
 target_link_libraries(lattice_reciprocal_basis PRIVATE ALPS::alps)
 alps_add_gtest(lattice_reciprocal_basis COMPONENT lattice)
+
+add_executable(lattice_depleted_distances depleted_distances.cpp)
+target_link_libraries(lattice_depleted_distances PRIVATE ALPS::alps)
+alps_add_gtest(lattice_depleted_distances COMPONENT lattice)
