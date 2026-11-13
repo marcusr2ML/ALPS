@@ -20,6 +20,7 @@
 #include <alps/testing/fp_compare.hpp>
 
 #include <alps/utilities/temporary_filename.hpp> // FIXME!!! Temporary!
+#include <cstdio> // for std::remove()
 #include <fstream>
 
 #ifdef ALPS_HAVE_ALPS_HDF5
@@ -325,11 +326,14 @@ namespace alps {
 
                     // FIXME!!!
                     // This is very inefficient and is done only for testing.
-                    std::string tmpfile_name=alps::temporary_filename("tmp_ini_file");
-                    std::ofstream tmpstream(tmpfile_name.c_str());
+                    struct removed_file {
+                        const std::string name;
+                        ~removed_file() { std::remove(name.c_str()); }
+                    } tmpfile{alps::temporary_filename("tmp_ini_file")};
+                    std::ofstream tmpstream(tmpfile.name.c_str());
                     tmpstream << cmd_options.rdbuf();
                     tmpstream.close();
-                    ini_file_to_map(tmpfile_name, raw_kv_content_);
+                    ini_file_to_map(tmpfile.name, raw_kv_content_);
 
                     if (restored_from_archive) {
                         // The parameter object was restored from archive, and
