@@ -213,7 +213,7 @@ class MplXYPlot_core:
                     self.lines.append([plt.scatter(xmeans, ymeans,
                                         marker=thismarker, c=thiscolor, facecolors='none')])
                 if xerrors is not None or yerrors is not None:
-                    plt.errorbar(xmeans, ymeans, yerr=yerrors, xerr=xerrors, fmt=None)
+                    plt.errorbar(xmeans, ymeans, yerr=yerrors, xerr=xerrors, fmt='none')
             else:
                 line_props = '-'
                 if 'line' in q.props:
