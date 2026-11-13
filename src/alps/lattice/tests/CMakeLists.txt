@@ -43,3 +43,7 @@ foreach(name coloring parity)
   target_link_libraries(${name} PRIVATE ALPS::alps)
   alps_add_gtest(${name} COMPONENT lattice LABELS compatibility)
 endforeach()
+
+add_executable(lattice_depleted_distances depleted_distances.cpp)
+target_link_libraries(lattice_depleted_distances PRIVATE ALPS::alps)
+alps_add_gtest(lattice_depleted_distances COMPONENT lattice)

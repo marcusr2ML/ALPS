@@ -514,11 +514,11 @@ public:
   vector_type coordinate(const cell_descriptor& c, const vector_type& p) const { return alps::coordinate(c,p,lattice());}
   vector_type momentum(const vector_type& m) const { return alps::momentum(m,lattice());}
 
-  size_type num_distances() const { return have_lattice_ && !inhomogeneous() ? l_.num_distances() : num_sites()*num_sites(); }
+  size_type num_distances() const { return translation_invariant() ? l_.num_distances() : num_sites()*num_sites(); }
 
   std::vector<unsigned int> distance_multiplicities() const
   {
-    if (have_lattice_ && !inhomogeneous())
+    if (translation_invariant())
       return l_.distance_multiplicities();
     std::vector<unsigned int> m(num_distances(),1u);
     return m;
@@ -535,7 +535,7 @@ public:
 
   std::vector<std::string> distance_labels(int precision = 0) const
   {
-    if (have_lattice_ && !inhomogeneous())
+    if (translation_invariant())
       return l_.distance_labels(precision);
     std::vector<std::string> label(num_distances());
     for (vertex_iterator it1=vertices().first; it1 != vertices().second;++it1)
@@ -567,7 +567,7 @@ public:
 
   size_type distance(vertex_descriptor x, vertex_descriptor y) const
   {
-    if (inhomogeneous() ||!have_lattice_)
+    if (!translation_invariant())
       return size_type(x)*num_sites()+size_type(y);
     if (!distances_calculated_)
       calculate_distances();
@@ -579,13 +579,13 @@ public:
     distance_lookup_.resize(boost::extents[num_sites()][num_sites()]);
     for (vertex_iterator it1=vertices().first; it1 != vertices().second;++it1)
       for (vertex_iterator it2=vertices().first; it2 != vertices().second;++it2)
-        distance_lookup_[int(*it1)][int(*it2)]=(have_lattice_ && !inhomogeneous() ? l_.distance(*it1,*it2) : (*it1)*num_sites()+(*it2));
+        distance_lookup_[int(*it1)][int(*it2)]=(translation_invariant() ? l_.distance(*it1,*it2) : (*it1)*num_sites()+(*it2));
     distances_calculated_=true;
   }
 
   std::vector<std::pair<std::complex<double>,std::vector<std::size_t> > > translations(const vector_type& k) const
   {
-    if (have_lattice_&& !inhomogeneous())
+    if (translation_invariant())
       return l_.translations(k);
     else
       return std::vector<std::pair<std::complex<double>,std::vector<std::size_t> > >();
@@ -593,7 +593,7 @@ public:
 
   std::vector<int> translation_directions() const
   {
-    if (have_lattice_ && !inhomogeneous())
+    if (translation_invariant())
       return l_.translation_directions();
     else
       return std::vector<int>();
@@ -601,7 +601,7 @@ public:
 
   std::vector<vector_type> translation_momenta() const
   {
-    if (have_lattice_ && !inhomogeneous())
+    if (translation_invariant())
       return l_.translation_momenta();
     else
       return std::vector<vector_type>();
@@ -609,6 +609,14 @@ public:
 
 
 private:
+  // False on a depleted lattice: its remaining sites are renumbered, so
+  // site index != cell index * unit-cell vertices + vertex.
+  bool translation_invariant() const
+  {
+    return have_lattice_ && !inhomogeneous() &&
+      num_sites() == static_cast<sites_size_type>(volume()) * num_vertices(unit_cell().graph());
+  }
+
   graph_helper(const graph_helper& o)
    : LatticeLibrary(o),
      nsite_groups_(o.nsite_groups_),
