@@ -30,7 +30,8 @@ foreach(
   vector_valarray_conversion
   matrix_algorithms
   matrix_kron
-  real_tests)
+  real_tests
+  regression)
   add_executable(${name} ${name}.C)
 
   target_link_libraries(${name} PRIVATE ALPS::numerics)

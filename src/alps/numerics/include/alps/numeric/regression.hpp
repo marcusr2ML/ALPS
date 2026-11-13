@@ -64,7 +64,7 @@ std::pair<double,double> linear_timeseries_fit (Iterator y_begin, Iterator y_end
     ++y_begin; ++count;
   }
 
-  LHS11 = count;
+  LHS11 = count - 1;
 
   if ( (det = (LHS11 * LHS22 - LHS12 * LHS12) ) == 0.) boost::throw_exception(std::runtime_error("Regression Error: System is not determined!"));
 
