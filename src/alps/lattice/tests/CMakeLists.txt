@@ -43,3 +43,7 @@ foreach(name coloring parity)
   target_link_libraries(${name} PRIVATE ALPS::alps)
   alps_add_gtest(${name} COMPONENT lattice LABELS compatibility)
 endforeach()
+
+add_executable(lattice_reciprocal_basis reciprocal_basis.cpp)
+target_link_libraries(lattice_reciprocal_basis PRIVATE ALPS::alps)
+alps_add_gtest(lattice_reciprocal_basis COMPONENT lattice)

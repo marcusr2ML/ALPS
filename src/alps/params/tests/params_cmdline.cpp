@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <functional>
 #include <locale> // for tolower()
+#include <filesystem>
 
 namespace ap=alps::params_ns;
 namespace de=ap::exception;
@@ -175,4 +176,30 @@ TEST_F(ParamsTestCmdline, doubleDash) {
     EXPECT_EQ(2, p["two"]) << "two=2 should have been read";
     EXPECT_TRUE(!!p[ini1_as_key]) << "--file1... should be taken as option " << ini1_as_key;
     EXPECT_FALSE(!!p[ini2_as_key]) << "--file2... should be taken as file " << ini2_as_key;
+}
+
+// ALPS: the command-line options are parsed through a temporary INI file in
+// the working directory, which must not be left behind. The test runs in a
+// directory of its own: the other tests here run concurrently under ctest.
+TEST_F(ParamsTestCmdline, noTemporaryFileLeft) {
+    namespace fs=std::filesystem;
+    const fs::path cwd=fs::current_path();
+    const fs::path dir=cwd/"noTemporaryFileLeft.dir";
+    fs::remove_all(dir);
+    fs::create_directory(dir);
+    fs::current_path(dir);
+    struct restore_cwd {
+        fs::path cwd, dir;
+        ~restore_cwd() { fs::current_path(cwd); fs::remove_all(dir); }
+    } restore{cwd, dir};
+
+    args_.add("--key1=value1");
+    params p(args_.argc(), args_.argv());
+    ASSERT_TRUE(p.define<std::string>("key1", "Key One").ok());
+    EXPECT_EQ(p["key1"], "value1");
+
+    std::vector<std::string> left;
+    for (const auto& entry: fs::directory_iterator(fs::current_path()))
+        left.push_back(entry.path().filename().string());
+    EXPECT_TRUE(left.empty()) << "left behind: " << left.front();
 }

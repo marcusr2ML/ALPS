@@ -56,6 +56,20 @@ def test_alpscore_binning_analysis():
         np.testing.assert_array_equal(dataset.y[-1], expected["error"])
 
 
+def test_binning_analysis_respath(tmp_path):
+    path = str(tmp_path / "custom.h5")
+    with pyalps.hdf5.archive(path, "w") as archive:
+        archive["/parameters/L"] = 4
+        archive["/custom/results/Energy/error_bins"] = np.array([0.01, 0.02, 0.03])
+    sets = pyalps.loadBinningAnalysis([path], respath="/custom/results")
+    assert [len(fileset) for fileset in sets] == [1]
+    dataset = sets[0][0]
+    assert dataset.props["observable"] == "binning analysis of Energy"
+    np.testing.assert_array_equal(dataset.y, [0.01, 0.02, 0.03])
+    assert dataset.props["hdf5_path"] == "/custom/results/Energy"
+    assert dataset.props["L"] == 4
+
+
 def test_legacy_binning_analysis(tmp_path):
     archive = tmp_path / "spinmc.h5"
     archive.write_bytes(gzip.decompress(

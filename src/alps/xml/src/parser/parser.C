@@ -49,6 +49,8 @@ std::string parse_parameter_name(std::istream& in)
         if (c=='[') 
           do {
             c=in.get();
+            if (!in)
+              boost::throw_exception(std::runtime_error("missing ] in parameter name " + name));
                 name+=c;
           } while (c!=']');
     c=in.get();
