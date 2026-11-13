@@ -150,6 +150,7 @@ try {
       find_in = true;
     } else if (!find_out) {
       outbase = arg;
+      find_out = true;
     } else {
       std::cerr << "Usage: " << argv[0] << " [-f] inputfile [outputbasename] [[NAME=value]...]\n";
       std::exit(-1);
