@@ -113,7 +113,11 @@ def main() -> int:
 
     # tolerance / skip edits force T3
     diff = git("diff", "-U0", f"{args.base}...{args.head}", "--", "tests", "src")
-    tol_lines = [l for l in diff.splitlines() if TOLERANCE_PAT.search(l)]
+    # New assertions in new tests tighten checking; flag removed/edited
+    # tolerance lines and any added skip.
+    skip_pat = re.compile(r"pytest\.mark\.(skip|xfail)|\bskipif\b|\bGTEST_SKIP\b|\bDISABLED_\w+")
+    tol_lines = [l for l in diff.splitlines() if TOLERANCE_PAT.search(l)
+                 and (l.startswith("-") or skip_pat.search(l))]
     if tol_lines:
         gate_tier = 3
         r.warn.append(f"{len(tol_lines)} added/removed line(s) touch tolerances or skips → T3")

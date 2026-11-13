@@ -6,6 +6,8 @@
     {"glob": "src/alps/numerics/**",        "tier": 3, "why": "numerics"},
     {"glob": "src/alps/model/**",           "tier": 3, "why": "Hamiltonian construction"},
     {"glob": "src/alps/lattice/**",         "tier": 3, "why": "lattice/couplings"},
+    {"glob": "src/alps/graph/**",           "tier": 3, "why": "lattice graphs"},
+    {"glob": "src/alps/resources/**",       "tier": 3, "why": "lattice/model XML library"},
     {"glob": "src/alps/alea/**",            "tier": 3, "why": "error analysis"},
     {"glob": "src/alps/aleav2/**",          "tier": 3, "why": "error analysis"},
     {"glob": "src/alps/accumulators/**",    "tier": 3, "why": "error analysis"},

@@ -32,7 +32,8 @@ Tier: T?
 
 <!-- How was this tested? Check all that apply and describe any manual steps. -->
 
-- [ ] Existing tests pass (`ctest --output-on-failure`)
+- [ ] Existing tests pass (`ctest --output-on-failure`), full suite
+- [ ] Only the neighbouring tests were run (list them in Verification)
 - [ ] New tests added for changed behaviour
 - [ ] Results verified against known reference values or published results
 - [ ] Tested on Linux
