@@ -147,6 +147,15 @@ namespace alps {
                 }
             };
 
+            // A dataset cannot have a zero extent, and an empty element is
+            // written as an empty dataset without the enclosing shape, so
+            // such vectors are saved one element per child instead.
+            template<typename T, typename A> bool has_empty_extent(std::vector<T, A> const & value) {
+                using alps::hdf5::get_extent;
+                std::vector<std::size_t> extent(get_extent(value));
+                return std::find(extent.begin(), extent.end(), std::size_t(0)) != extent.end();
+            }
+
         }
 
 
@@ -171,7 +180,7 @@ namespace alps {
                 ar.write(path, get_pointer(value), size, chunk, offset);
             } else if (value.size() == 0)
                 ar.write(path, static_cast<int const *>(NULL), std::vector<std::size_t>());
-            else if (is_vectorizable(value)) {
+            else if (is_vectorizable(value) && !detail::has_empty_extent(value)) {
                 size.push_back(value.size());
                 chunk.push_back(1);
                 offset.push_back(0);

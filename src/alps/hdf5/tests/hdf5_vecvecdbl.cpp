@@ -48,3 +48,25 @@ TEST(Hdf5, Vecvecdbl)
     }
     std::filesystem::remove(std::filesystem::path((temporary.path() / "vvdbl.h5").string()));
 }
+
+TEST(Hdf5, VecvecdblEmptyInner)
+{
+    alps::testing::TemporaryDirectory temporary;
+    std::string const filename = (temporary.path() / "vvdbl_empty.h5").string();
+    vector<vector<double> > const v(3);
+    vector<vector<vector<double> > > const vvv(2, vector<vector<double> >(1));
+    {
+        alps::hdf5::archive ar(filename, "w");
+        ar["/v"] << v;
+        ar["/vvv"] << vvv;
+    }
+    {
+        vector<vector<double> > w;
+        vector<vector<vector<double> > > www;
+        alps::hdf5::archive ar(filename, "r");
+        ar["/v"] >> w;
+        ar["/vvv"] >> www;
+        EXPECT_EQ(w, v);
+        EXPECT_EQ(www, vvv);
+    }
+}
