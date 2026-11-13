@@ -627,7 +627,7 @@ def loadBinningAnalysis(files,what=None,verbose=False,respath='/simulation/resul
     ll = Hdf5Loader()
     if isinstance(what,str):
       what = [what]
-    return ll.ReadBinningAnalysis(files,measurements=what,verbose=verbose)
+    return ll.ReadBinningAnalysis(files,measurements=what,respath=respath,verbose=verbose)
 
 def loadMeasurements(files,what=None,verbose=False,respath='/simulation/results'):
     """ loads ALPS measurements from ALPS HDF5 result files
