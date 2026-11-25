@@ -42,7 +42,7 @@ void run(int argc, char **argv){
   alps::params parms_new(p["pfile_new"].as<std::string>());
   define_parameters_pfile(parms_old);
   define_parameters_pfile(parms_new);
-  // the Green's functions here have 2 flavors (2x2 in Nambu space) (#471)
+  // the Green's functions here have 2 flavors (#471)
   for (const alps::params* parms : {&parms_old, &parms_new})
     if (int((*parms)["FLAVORS"]) != 2)
       throw std::invalid_argument("FLAVORS = " + std::to_string(int((*parms)["FLAVORS"]))

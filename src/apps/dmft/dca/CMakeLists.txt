@@ -60,6 +60,14 @@ if(GSL_FOUND)
       DCA_INTERPOLATE_SC="$<TARGET_FILE:sigma_interpolate_sc>")
     add_dependencies(dca_interpolation_tools_test ${dca_tools})
     alps_add_gtest(dca_interpolation_tools_test COMPONENT dmft LABELS regression)
+    add_executable(dca_interpolation_tools_e2_edge_test tests/interpolation_tools_e2_edge_test.cpp)
+    target_link_libraries(dca_interpolation_tools_e2_edge_test PRIVATE alps_dca)
+    target_compile_definitions(dca_interpolation_tools_e2_edge_test PRIVATE
+      DCA_CLUSTER_LIBRARY="${CMAKE_CURRENT_SOURCE_DIR}/libcluster/cluster.xml"
+      DCA_INTERPOLATE_NORMAL="$<TARGET_FILE:sigma_interpolate_normal>"
+      DCA_INTERPOLATE_SC="$<TARGET_FILE:sigma_interpolate_sc>")
+    add_dependencies(dca_interpolation_tools_e2_edge_test ${dca_tools})
+    alps_add_gtest(dca_interpolation_tools_e2_edge_test COMPONENT dmft LABELS regression)
   endif()
 else()
   message(STATUS "GSL not found: sigma_interpolate_normal, sigma_interpolate_sc and dca_interpolation_tools_test are not built")
